@@ -6,10 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Bot, User, FileText, Plus, Paperclip, Loader2, Lightbulb, BookOpen, Search, AlertCircle } from "lucide-react"
+import { Send, Bot, User, FileText, Plus, Paperclip, Loader2, Lightbulb, BookOpen, Search } from "lucide-react"
 import Link from "next/link"
-import { chatApi, ChatMessage, ApiError } from "@/lib/api"
-import { toast } from "sonner"
+
+interface Message {
+  id: number
+  type: "user" | "assistant"
+  content: string
+  timestamp: Date
+  attachedPaper?: string
+}
 
 interface QuickAction {
   label: string
@@ -18,7 +24,7 @@ interface QuickAction {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       type: "assistant",
@@ -30,7 +36,6 @@ export default function ChatPage() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [attachedPapers, setAttachedPapers] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const quickActions: QuickAction[] = [
@@ -64,28 +69,11 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
-  // Load chat history on component mount
-  useEffect(() => {
-    const loadChatHistory = async () => {
-      try {
-        const history = await chatApi.getChatHistory()
-        if (history.length > 0) {
-          setMessages(history)
-        }
-      } catch (error) {
-        console.error('Failed to load chat history:', error)
-        // Don't show error toast for history loading, just log it
-      }
-    }
-
-    loadChatHistory()
-  }, [])
-
   const handleSendMessage = async (messageContent?: string) => {
     const content = messageContent || inputMessage
     if (!content.trim()) return
 
-    const userMessage: ChatMessage = {
+    const userMessage: Message = {
       id: messages.length + 1,
       type: "user",
       content,
@@ -96,47 +84,31 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
     setIsLoading(true)
-    setError(null)
 
-    try {
-      const response = await chatApi.sendMessage({
-        message: content,
-        attachedPapers: attachedPapers,
-        conversationHistory: messages,
-      })
-
-      const aiResponse: ChatMessage = {
+    // Simulate AI response
+    setTimeout(() => {
+      const aiResponse: Message = {
         id: messages.length + 2,
         type: "assistant",
-        content: response.message,
-        timestamp: response.timestamp,
+        content: generateAIResponse(content),
+        timestamp: new Date(),
       }
-
       setMessages((prev) => [...prev, aiResponse])
-    } catch (error) {
-      console.error('Failed to send message:', error)
-      
-      let errorMessage = 'Failed to send message. Please try again.'
-      if (error instanceof ApiError) {
-        if (error.status === 401) {
-          errorMessage = 'Authentication required. Please log in again.'
-        } else if (error.status === 403) {
-          errorMessage = 'You do not have permission to send messages.'
-        } else if (error.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.'
-        } else if (error.status >= 500) {
-          errorMessage = 'Server error. Please try again later.'
-        }
-      }
-      
-      setError(errorMessage)
-      toast.error(errorMessage)
-      
-      // Remove the user message if the API call failed
-      setMessages((prev) => prev.filter(msg => msg.id !== userMessage.id))
-    } finally {
       setIsLoading(false)
+    }, 2000)
+  }
+
+  const generateAIResponse = (userMessage: string): string => {
+    // Mock AI responses based on user input
+    if (userMessage.toLowerCase().includes("summarize")) {
+      return "Based on the papers you've shared, here are the key findings:\n\n1. **Novel Architecture**: The transformer-based approach shows significant improvements over traditional RNN models\n2. **Performance Gains**: 15-20% improvement in accuracy across multiple benchmarks\n3. **Computational Efficiency**: Reduced training time while maintaining model quality\n\nWould you like me to elaborate on any of these points?"
     }
+
+    if (userMessage.toLowerCase().includes("methodology") || userMessage.toLowerCase().includes("method")) {
+      return "The methodologies in these papers share some common approaches:\n\n**Similarities:**\n- Both use attention mechanisms as core components\n- Similar preprocessing techniques for data preparation\n- Comparable evaluation metrics\n\n**Key Differences:**\n- Paper A uses multi-head attention while Paper B employs single-head with different scaling\n- Different optimization strategies (Adam vs. AdamW)\n\nWhich specific aspect of the methodology would you like to explore further?"
+    }
+
+    return "That's an interesting question! Based on the research papers in our conversation, I can provide insights on various aspects including methodologies, results, limitations, and potential future directions. Could you be more specific about what you'd like to know?"
   }
 
   const handleQuickAction = (action: QuickAction) => {
@@ -148,7 +120,6 @@ export default function ChatPage() {
     const paperTitle = "Attention Is All You Need"
     if (!attachedPapers.includes(paperTitle)) {
       setAttachedPapers((prev) => [...prev, paperTitle])
-      toast.success(`Added "${paperTitle}" to context`)
     }
   }
 
@@ -218,7 +189,6 @@ export default function ChatPage() {
                         size="sm"
                         className="w-full justify-start text-left h-auto p-2"
                         onClick={() => handleQuickAction(action)}
-                        disabled={isLoading}
                       >
                         <IconComponent className="mr-2 h-4 w-4 text-purple-600" />
                         <span className="text-sm">{action.label}</span>
@@ -240,16 +210,6 @@ export default function ChatPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-0">
-                {/* Error Display */}
-                {error && (
-                  <div className="p-4 bg-red-50 border-l-4 border-red-400">
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="h-5 w-5 text-red-400" />
-                      <span className="text-sm text-red-700">{error}</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
@@ -305,7 +265,6 @@ export default function ChatPage() {
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                       className="flex-1"
-                      disabled={isLoading}
                     />
                     <Button
                       onClick={() => handleSendMessage()}
