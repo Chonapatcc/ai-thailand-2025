@@ -8,14 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, FileText, Plus, Paperclip, Loader2, Lightbulb, BookOpen, Search } from "lucide-react"
 import Link from "next/link"
-
-interface Message {
-  id: number
-  type: "user" | "assistant"
-  content: string
-  timestamp: Date
-  attachedPaper?: string
-}
+import { ChatAPI, ChatMessage, getMockResponse } from "@/lib/api"
 
 interface QuickAction {
   label: string
@@ -24,7 +17,7 @@ interface QuickAction {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
       type: "assistant",
@@ -36,7 +29,10 @@ export default function ChatPage() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [attachedPapers, setAttachedPapers] = useState<string[]>([])
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedFileName, setUploadedFileName] = useState<string>("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const quickActions: QuickAction[] = [
     {
@@ -69,14 +65,27 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        setUploadedFile(file)
+        setUploadedFileName(file.name)
+        console.log('PDF file uploaded:', file.name, file.size)
+      } else {
+        alert('Please upload a PDF file')
+      }
+    }
+  }
+
   const handleSendMessage = async (messageContent?: string) => {
     const content = messageContent || inputMessage
-    if (!content.trim()) return
+    if (!content.trim() && !uploadedFile) return
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: messages.length + 1,
       type: "user",
-      content,
+      content: uploadedFile ? `[Uploaded: ${uploadedFileName}] ${content}` : content,
       timestamp: new Date(),
       attachedPaper: attachedPapers.length > 0 ? attachedPapers[0] : undefined,
     }
@@ -85,35 +94,128 @@ export default function ChatPage() {
     setInputMessage("")
     setIsLoading(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
+    try {
+      let response: any
+      
+      if (uploadedFile) {
+        // Handle file upload
+        const formData = new FormData()
+        formData.append('file', uploadedFile)
+        formData.append('message', content || 'Please summarize this paper')
+        formData.append('context', JSON.stringify(attachedPapers))
+        formData.append('history', JSON.stringify(messages.slice(-10)))
+        
+        console.log('Sending file upload to API:', {
+          fileName: uploadedFileName,
+          fileSize: uploadedFile.size,
+          message: content,
+          context: attachedPapers
+        })
+        
+        const apiResponse = await fetch('/api/chat', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!apiResponse.ok) {
+          throw new Error(`HTTP error! status: ${apiResponse.status}`)
+        }
+        
+        response = await apiResponse.json()
+        console.log('File upload API response:', response)
+        
+        // Clear uploaded file after successful upload
+        setUploadedFile(null)
+        setUploadedFileName("")
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ""
+        }
+      } else {
+        // Regular text message
+        console.log('Sending message to API:', {
+          message: content,
+          context: attachedPapers,
+          history: messages.slice(-10)
+        })
+        
+        response = await ChatAPI.sendMessage({
+          message: content,
+          context: attachedPapers,
+          history: messages.slice(-10), // Send last 10 messages for context
+        })
+        
+        console.log('API response:', response)
+      }
+
+      const aiResponse: ChatMessage = {
         id: messages.length + 2,
         type: "assistant",
-        content: generateAIResponse(content),
+        content: response.message,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, aiResponse])
+    } catch (error) {
+      console.error('API call failed, using fallback response:', error)
+      // Fallback to mock response if API fails
+      const aiResponse: ChatMessage = {
+        id: messages.length + 2,
+        type: "assistant",
+        content: getMockResponse(content),
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, aiResponse])
+    } finally {
       setIsLoading(false)
-    }, 2000)
+    }
   }
 
-  const generateAIResponse = (userMessage: string): string => {
-    // Mock AI responses based on user input
-    if (userMessage.toLowerCase().includes("summarize")) {
-      return "Based on the papers you've shared, here are the key findings:\n\n1. **Novel Architecture**: The transformer-based approach shows significant improvements over traditional RNN models\n2. **Performance Gains**: 15-20% improvement in accuracy across multiple benchmarks\n3. **Computational Efficiency**: Reduced training time while maintaining model quality\n\nWould you like me to elaborate on any of these points?"
+  const handleQuickAction = async (action: QuickAction) => {
+    if (attachedPapers.length === 0) {
+      // If no papers are attached, just send the prompt normally
+      handleSendMessage(action.prompt)
+      return
     }
 
-    if (userMessage.toLowerCase().includes("methodology") || userMessage.toLowerCase().includes("method")) {
-      return "The methodologies in these papers share some common approaches:\n\n**Similarities:**\n- Both use attention mechanisms as core components\n- Similar preprocessing techniques for data preparation\n- Comparable evaluation metrics\n\n**Key Differences:**\n- Paper A uses multi-head attention while Paper B employs single-head with different scaling\n- Different optimization strategies (Adam vs. AdamW)\n\nWhich specific aspect of the methodology would you like to explore further?"
+    setIsLoading(true)
+    try {
+      let response: any
+      
+      switch (action.label) {
+        case "Summarize key findings":
+          response = await ChatAPI.summarizePapers(attachedPapers)
+          break
+        case "Compare methodologies":
+          response = await ChatAPI.compareMethodologies(attachedPapers)
+          break
+        case "Identify research gaps":
+          response = await ChatAPI.identifyResearchGaps(attachedPapers)
+          break
+        case "Suggest future work":
+          response = await ChatAPI.suggestFutureWork(attachedPapers)
+          break
+        default:
+          // Fallback to regular message sending
+          handleSendMessage(action.prompt)
+          return
+      }
+
+      const aiResponse: ChatMessage = {
+        id: messages.length + 1,
+        type: "assistant",
+        content: response.message,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, aiResponse])
+    } catch (error) {
+      console.error('Quick action API call failed:', error)
+      // Fallback to regular message sending
+      handleSendMessage(action.prompt)
+    } finally {
+      setIsLoading(false)
     }
-
-    return "That's an interesting question! Based on the research papers in our conversation, I can provide insights on various aspects including methodologies, results, limitations, and potential future directions. Could you be more specific about what you'd like to know?"
   }
 
-  const handleQuickAction = (action: QuickAction) => {
-    handleSendMessage(action.prompt)
-  }
+
 
   const addPaperToContext = () => {
     // Mock adding a paper to context
@@ -258,17 +360,62 @@ export default function ChatPage() {
 
                 {/* Input Area */}
                 <div className="border-t p-4">
+                  {/* File Upload Status */}
+                  {uploadedFile && (
+                    <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm text-blue-800">{uploadedFileName}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setUploadedFile(null)
+                            setUploadedFileName("")
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = ""
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex space-x-2">
                     <Input
-                      placeholder="Ask about your research papers..."
+                      placeholder="Ask about your research papers or upload a PDF..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                       className="flex-1"
                     />
+                    
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading}
+                      className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    
                     <Button
                       onClick={() => handleSendMessage()}
-                      disabled={!inputMessage.trim() || isLoading}
+                      disabled={(!inputMessage.trim() && !uploadedFile) || isLoading}
                       className="bg-purple-600 hover:bg-purple-700"
                     >
                       <Send className="h-4 w-4" />
