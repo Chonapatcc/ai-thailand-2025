@@ -68,7 +68,7 @@ export default function HomePage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                AnomyResearch
+                ThaiJoy
               </h1>
               <p className="text-xs text-purple-200">AI & Tech Research Intelligence</p>
             </div>
@@ -115,12 +115,12 @@ export default function HomePage() {
             <h2 className="relative text-6xl md:text-7xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent mb-6 leading-tight">
               AI Research
               <br />
-              <span className="text-5xl md:text-6xl">Anomaly Detection</span>
+              <span className="text-5xl md:text-6xl">Personal Research Paper Assistant</span>
             </h2>
           </div>
           <p className="text-xl text-purple-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Uncover hidden patterns in AI and technology research papers. Advanced intelligence for machine learning,
-            deep learning, computer vision, NLP, and emerging tech breakthroughs
+          ผู้ช่วย AI ในการทำงานวิจัย ที่เกี่ยวข้องกับเทคโนโลยี และปัญญาประดิษฐ์ ด้วยระบบการวิเคราะห์งานวิจัยเชิงลึก และระบบ Conversational Chat ตอบคำถามเกี่ยวกับงานวิจัยอย่างละเอียด นอกจากนี้ยังมีระบบแนะนำงานวิจัยที่เกี่ยวข้องกับ
+          โปรเจคของผู้ใช้งาน เพื่อหา Improvement Gap และแนวทางในการพัฒนางานต่อไป 
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Button
@@ -158,35 +158,35 @@ export default function HomePage() {
             <h3 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-4">
               Advanced AI Research Tools
             </h3>
-            <p className="text-purple-200 text-lg">Specialized intelligence for AI and technology research</p>
+            <p className="text-purple-200 text-lg">Specialized AI สำหรับงานวิจัย และเทคโนโลยี</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 icon: Brain,
                 title: "AI Paper Analysis",
-                description: "Deep learning models extract key insights from ML, DL, and AI research papers",
+                description: "Deep Learning ช่วยดึงข้อมูลเชิงลึกที่สำคัญจากงานวิจัยด้านการเรียนรู้ของเครื่อง การเรียนรู้เชิงลึก และปัญญาประดิษฐ์",
                 gradient: "from-blue-500 to-purple-600",
                 delay: "0ms",
               },
               {
                 icon: Network,
                 title: "Tech Pattern Discovery",
-                description: "Uncover connections across computer vision, NLP, robotics, and emerging tech",
+                description: "ค้นพบความเชื่อมโยงใน Computer Vision, NLP, หุ่นยนต์, และเทคโนโลยีที่เกิดขึ้นใหม่",
                 gradient: "from-purple-500 to-pink-600",
                 delay: "200ms",
               },
               {
                 icon: Cpu,
                 title: "Algorithm Intelligence",
-                description: "AI assistant specialized in understanding complex algorithms and architectures",
+                description: "AI assistant ที่มีความเข้าใจใน algorithms และ architectures ที่มีความซับซ้อน",
                 gradient: "from-pink-500 to-red-600",
                 delay: "400ms",
               },
               {
                 icon: Target,
                 title: "Research Trajectory",
-                description: "Track your AI research journey with intelligent progress mapping",
+                description: "ติดตามเส้นทางการวิจัย AI ของผู้ใช้งานและแนะนำงานวิจัยที่เกี่ยวข้อง",
                 gradient: "from-green-500 to-blue-600",
                 delay: "600ms",
               },
@@ -252,7 +252,7 @@ export default function HomePage() {
                 Ready to Decode AI Research?
               </h3>
               <p className="text-purple-100 mb-8 text-lg max-w-2xl mx-auto">
-                Join researchers pushing the boundaries of artificial intelligence and emerging technologies
+                เริ่มต้นการวิจัย AI ของคุณด้วย ThaiJoy ผู้ช่วย AI ที่ออกแบบมาเพื่อช่วยให้คุณเข้าใจงานวิจัยด้านปัญญาประดิษฐ์และเทคโนโลยีอย่างลึกซึ้ง
               </p>
               <Button
                 asChild
@@ -278,7 +278,7 @@ export default function HomePage() {
               <Cpu className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-              AnomyResearch
+              ThaiJoy
             </span>
           </div>
           <p className="text-purple-300">Advancing AI research through intelligent analysis</p>
