@@ -99,12 +99,12 @@ export class AIFTStandalone {
       }
       sessionHistory.push(`User: ${message}`)
       
-      // Call Python script file
+      // Call Python script file - using textqa instead of chat
       const { spawn } = await import('child_process')
       const path = await import('path')
       
-      // Path to the Python script
-      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_chat.py')
+      // Path to the Python script - using textqa
+      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_textqa.py')
       
       // Call Python script
       const pythonProcess = spawn('python', [
@@ -178,102 +178,83 @@ export class AIFTStandalone {
     return this.sessions.get(sessionid) || []
   }
 
-  static async imageqa(imageFile: File, question: string, params: AIFTChatParams = {}): Promise<string> {
-    let tempFile: string | null = null
-    let fs: any = null
-    
+  static async imageqa(imageData: string, question: string, params: AIFTChatParams = {}): Promise<string> {
     try {
-      console.log('Calling AIFT standalone imageqa with:', { question, filename: imageFile.name, params })
+      console.log('Calling AIFT standalone imageqa with:', { question, params })
       
-      // Convert image file to base64
-      const arrayBuffer = await imageFile.arrayBuffer()
-      const base64Data = Buffer.from(arrayBuffer).toString('base64')
+      const sessionid = params.sessionid || 'default-session'
+      const context = params.context || ''
+      const temperature = params.temperature || 0.2
+      const return_json = params.return_json || false
       
-      // Call Python script file
+      // Call Python script file - using enhanced image script with VQA
       const { spawn } = await import('child_process')
       const path = await import('path')
-      fs = await import('fs')
       
-      // Path to the Python script
-      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_image.py')
+      // Path to the Python script - using enhanced image script
+      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_image_enhanced.py')
       
       // Create temporary file for image data
+      const fs = await import('fs')
       const tempDir = path.default.join(process.cwd(), 'temp')
-      if (!fs.default.existsSync(tempDir)) {
-        fs.default.mkdirSync(tempDir, { recursive: true })
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true })
       }
+      const tempFile = path.default.join(tempDir, `image_${Date.now()}.txt`)
+      fs.writeFileSync(tempFile, imageData)
       
-      tempFile = path.default.join(tempDir, `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.txt`)
-      fs.default.writeFileSync(tempFile, base64Data)
-      
-      // Call Python script with image data file path
-      const pythonProcess = spawn('python', [
-        pythonScriptPath,
-        tempFile,
-        question,
-        params.sessionid || 'default-session',
-        params.context || '',
-        (params.temperature || 0.2).toString(),
-        (params.return_json || false).toString()
-      ])
-      
-      // Get response from Python
-      let response = ''
-      let error = ''
-      
-      pythonProcess.stdout.on('data', (data: Buffer) => {
-        response += data.toString()
-      })
-      
-      pythonProcess.stderr.on('data', (data: Buffer) => {
-        error += data.toString()
-      })
-      
-      // Wait for Python process to complete
-      await new Promise<string>((resolve, reject) => {
-        pythonProcess.on('close', (code: number) => {
-          if (code === 0) {
-            resolve(response.trim())
-          } else {
-            reject(new Error(`Python process failed with code ${code}: ${error}`))
-          }
-        })
-      })
-      
-      console.log('AIFT standalone imageqa response:', { content: response })
-      
-      // Clean up temporary file
       try {
-        fs.default.unlinkSync(tempFile)
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temporary file:', cleanupError)
-      }
-      
-      if (params.return_json) {
-        return JSON.stringify({
+        // Call Python script
+        const pythonProcess = spawn('python', [
+          pythonScriptPath,
+          tempFile,
           question,
-          filename: imageFile.name,
-          content: response,
-          temperature: params.temperature || 0.4,
-          execution_time: '0.05'
+          sessionid,
+          context,
+          temperature.toString(),
+          return_json.toString()
+        ])
+        
+        // Get response from Python
+        let response = ''
+        let error = ''
+        
+        pythonProcess.stdout.on('data', (data: Buffer) => {
+          response += data.toString()
         })
-      } else {
-        return response
-      }
-      
-    } catch (error) {
-      // Clean up temporary file on error
-      try {
-        if (tempFile && fs.default.existsSync(tempFile)) {
-          fs.default.unlinkSync(tempFile)
+        
+        pythonProcess.stderr.on('data', (data: Buffer) => {
+          error += data.toString()
+        })
+        
+        // Wait for Python process to complete
+        await new Promise<string>((resolve, reject) => {
+          pythonProcess.on('close', (code: number) => {
+            if (code === 0) {
+              resolve(response.trim())
+            } else {
+              reject(new Error(`Python process failed with code ${code}: ${error}`))
+            }
+          })
+        })
+        
+        console.log('AIFT standalone imageqa response:', { content: response })
+        
+        if (return_json) {
+          return response
+        } else {
+          return response
         }
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temporary file on error:', cleanupError)
+      } finally {
+        // Clean up temporary file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile)
+        }
       }
-      
+    } catch (error) {
       console.error('AIFT standalone imageqa error:', error)
       logError(error, 'AIFT standalone imageqa failed')
-      throw new Error('AIFT standalone image service temporarily unavailable')
+      throw new Error('AIFT standalone imageqa service temporarily unavailable')
     }
   }
 
@@ -293,8 +274,8 @@ export class AIFTStandalone {
       const path = await import('path')
       fs = await import('fs')
       
-      // Path to the Python script
-      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_pdf.py')
+      // Path to the integrated Python script
+      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_integrated.py')
       
       // Create temporary file for PDF data
       const tempDir = path.default.join(process.cwd(), 'temp')
@@ -308,6 +289,7 @@ export class AIFTStandalone {
       // Call Python script with PDF data file path
       const pythonProcess = spawn('python', [
         pythonScriptPath,
+        'pdf',
         tempFile,
         question,
         params.sessionid || 'default-session',
@@ -341,23 +323,24 @@ export class AIFTStandalone {
       
       console.log('AIFT standalone pdfqa response:', { content: response })
       
+      // Parse JSON response
+      try {
+        const result = JSON.parse(response)
+        if (result.success) {
+          return result.analysis
+        } else {
+          throw new Error(result.error || 'PDF analysis failed')
+        }
+      } catch (parseError) {
+        // If not JSON, return raw response
+        return response
+      }
+      
       // Clean up temporary file
       try {
         fs.default.unlinkSync(tempFile)
       } catch (cleanupError) {
         console.warn('Failed to clean up temporary file:', cleanupError)
-      }
-      
-      if (params.return_json) {
-        return JSON.stringify({
-          question,
-          filename: pdfFile.name,
-          content: response,
-          temperature: params.temperature || 0.4,
-          execution_time: '0.05'
-        })
-      } else {
-        return response
       }
       
     } catch (error) {
@@ -376,102 +359,83 @@ export class AIFTStandalone {
     }
   }
 
-  static async voiceqa(audioFile: File, question: string, params: AIFTChatParams = {}): Promise<string> {
-    let tempFile: string | null = null
-    let fs: any = null
-    
+  static async voiceqa(audioData: string, question: string, params: AIFTChatParams = {}): Promise<string> {
     try {
-      console.log('Calling AIFT standalone voiceqa with:', { question, filename: audioFile.name, params })
+      console.log('Calling AIFT standalone voiceqa with:', { question, params })
       
-      // Convert audio file to base64
-      const arrayBuffer = await audioFile.arrayBuffer()
-      const base64Data = Buffer.from(arrayBuffer).toString('base64')
+      const sessionid = params.sessionid || 'default-session'
+      const context = params.context || ''
+      const temperature = params.temperature || 0.2
+      const return_json = params.return_json || false
       
-      // Call Python script file
+      // Call Python script file - using enhanced voice script with AudioQA
       const { spawn } = await import('child_process')
       const path = await import('path')
-      fs = await import('fs')
       
-      // Path to the Python script
-      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_voice.py')
+      // Path to the Python script - using enhanced voice script
+      const pythonScriptPath = path.default.join(process.cwd(), 'python', 'aift_voice_enhanced.py')
       
       // Create temporary file for audio data
+      const fs = await import('fs')
       const tempDir = path.default.join(process.cwd(), 'temp')
-      if (!fs.default.existsSync(tempDir)) {
-        fs.default.mkdirSync(tempDir, { recursive: true })
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true })
       }
+      const tempFile = path.default.join(tempDir, `audio_${Date.now()}.txt`)
+      fs.writeFileSync(tempFile, audioData)
       
-      tempFile = path.default.join(tempDir, `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.txt`)
-      fs.default.writeFileSync(tempFile, base64Data)
-      
-      // Call Python script with audio data file path
-      const pythonProcess = spawn('python', [
-        pythonScriptPath,
-        tempFile,
-        question,
-        params.sessionid || 'default-session',
-        params.context || '',
-        (params.temperature || 0.2).toString(),
-        (params.return_json || false).toString()
-      ])
-      
-      // Get response from Python
-      let response = ''
-      let error = ''
-      
-      pythonProcess.stdout.on('data', (data: Buffer) => {
-        response += data.toString()
-      })
-      
-      pythonProcess.stderr.on('data', (data: Buffer) => {
-        error += data.toString()
-      })
-      
-      // Wait for Python process to complete
-      await new Promise<string>((resolve, reject) => {
-        pythonProcess.on('close', (code: number) => {
-          if (code === 0) {
-            resolve(response.trim())
-          } else {
-            reject(new Error(`Python process failed with code ${code}: ${error}`))
-          }
-        })
-      })
-      
-      console.log('AIFT standalone voiceqa response:', { content: response })
-      
-      // Clean up temporary file
       try {
-        fs.default.unlinkSync(tempFile)
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temporary file:', cleanupError)
-      }
-      
-      if (params.return_json) {
-        return JSON.stringify({
+        // Call Python script
+        const pythonProcess = spawn('python', [
+          pythonScriptPath,
+          tempFile,
           question,
-          filename: audioFile.name,
-          content: response,
-          temperature: params.temperature || 0.4,
-          execution_time: '0.05'
+          sessionid,
+          context,
+          temperature.toString(),
+          return_json.toString()
+        ])
+        
+        // Get response from Python
+        let response = ''
+        let error = ''
+        
+        pythonProcess.stdout.on('data', (data: Buffer) => {
+          response += data.toString()
         })
-      } else {
-        return response
-      }
-      
-    } catch (error) {
-      // Clean up temporary file on error
-      try {
-        if (tempFile && fs.default.existsSync(tempFile)) {
-          fs.default.unlinkSync(tempFile)
+        
+        pythonProcess.stderr.on('data', (data: Buffer) => {
+          error += data.toString()
+        })
+        
+        // Wait for Python process to complete
+        await new Promise<string>((resolve, reject) => {
+          pythonProcess.on('close', (code: number) => {
+            if (code === 0) {
+              resolve(response.trim())
+            } else {
+              reject(new Error(`Python process failed with code ${code}: ${error}`))
+            }
+          })
+        })
+        
+        console.log('AIFT standalone voiceqa response:', { content: response })
+        
+        if (return_json) {
+          return response
+        } else {
+          return response
         }
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temporary file on error:', cleanupError)
+      } finally {
+        // Clean up temporary file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile)
+        }
       }
-      
+    } catch (error) {
       console.error('AIFT standalone voiceqa error:', error)
       logError(error, 'AIFT standalone voiceqa failed')
-      throw new Error('AIFT standalone voice service temporarily unavailable')
+      throw new Error('AIFT standalone voiceqa service temporarily unavailable')
     }
   }
 } 

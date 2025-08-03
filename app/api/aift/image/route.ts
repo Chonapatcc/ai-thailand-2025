@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       
       console.log('Processing image analysis:', { question, filename: imageFile.name })
       
-      // Generate AI response for image analysis
+      // Generate AI response for image analysis using Python scripts
       let aiResponse: string
       try {
         aiResponse = await AIFTStandalone.imageqa(imageFile, question, {

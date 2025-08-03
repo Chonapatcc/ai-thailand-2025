@@ -1,123 +1,254 @@
-# AIFT Python Scripts
+# File Processing System
 
-This directory contains Python scripts for AIFT functionality that can be called from the TypeScript application.
+This directory contains Python scripts for processing various file types (PDF, images, audio) and integrating with the AIFT system for AI analysis.
 
-## Files
+## Overview
 
-### `aift_textqa.py`
-- **Purpose**: Handles AIFT textqa functionality
-- **Usage**: Called from TypeScript for question-answering
-- **Parameters**:
-  - `question`: The question to ask
-  - `sessionid`: Session ID (optional, default: 'default-session')
-  - `context`: Context information (optional, default: '')
-  - `temperature`: Temperature for response generation (optional, default: 0.2)
-  - `return_json`: Whether to return JSON format (optional, default: False)
+The file processing system consists of several components:
 
-### `aift_chat.py`
-- **Purpose**: Handles AIFT chat functionality
-- **Usage**: Called from TypeScript for chat conversations
-- **Parameters**:
-  - `message`: The chat message
-  - `sessionid`: Session ID (optional, default: 'default-session')
-  - `context`: Context information (optional, default: '')
-  - `temperature`: Temperature for response generation (optional, default: 0.2)
-  - `return_json`: Whether to return JSON format (optional, default: False)
+1. **File Processor** (`file_processor.py`) - Handles file conversion and preprocessing
+2. **Upload Handler** (`upload_handler.py`) - Manages file uploads and routing
+3. **AIFT Integrated** (`aift_integrated.py`) - Combines file processing with AI analysis
+4. **Individual AIFT Scripts** - Direct AIFT integration for specific file types
 
-### `aift_image.py`
-- **Purpose**: Handles AIFT image analysis functionality
-- **Usage**: Called from TypeScript for image processing and visual question answering
-- **Parameters**:
-  - `image_data`: Base64 encoded image data
-  - `question`: The question about the image
-  - `sessionid`: Session ID (optional, default: 'default-session')
-  - `context`: Context information (optional, default: '')
-  - `temperature`: Temperature for response generation (optional, default: 0.2)
-  - `return_json`: Whether to return JSON format (optional, default: False)
+## Features
 
-### `aift_voice.py`
-- **Purpose**: Handles AIFT audio/voice analysis functionality
-- **Usage**: Called from TypeScript for audio processing and transcription
-- **Parameters**:
-  - `audio_data`: Base64 encoded audio data
-  - `question`: The question about the audio
-  - `sessionid`: Session ID (optional, default: 'default-session')
-  - `context`: Context information (optional, default: '')
-  - `temperature`: Temperature for response generation (optional, default: 0.2)
-  - `return_json`: Whether to return JSON format (optional, default: False)
+### 📄 PDF Processing
+- Extract text from PDF files
+- Save original and processed files to backend/frontend directories
+- Generate comprehensive text content for AI analysis
 
-## API Key Configuration
+### 🖼️ Image Processing
+- Preprocess images for better AI analysis
+- Enhance contrast, sharpness, and reduce noise
+- Resize large images to optimal size
+- Save original and processed versions
 
-Both scripts use the API key: `Od2TqqTYP5FEOjtSX0yYcJgxRlSVGfR8`
+### 🎵 Audio Processing
+- Preprocess audio files for speech recognition
+- Normalize audio levels and reduce noise
+- Resample to 16kHz for better compatibility
+- Save original and processed versions
 
-## Dependencies
+### 💬 Text Processing
+- Handle direct text input
+- Save text files to organized directories
+- Prepare text for AI analysis
 
-- `aift.multimodal.textqa`
-- `aift.setting`
+## Directory Structure
 
-## Usage Examples
-
-### Direct Python Usage
-
-```bash
-# TextQA
-python python/aift_textqa.py "ซื้อขนมไป 20 เหลือเงินเท่าไหร่" "YOUR_SESSION" "มีเงิน 100 บาท" 0.2 false
-
-# Chat
-python python/aift_chat.py "สวัสดีครับ" "YOUR_SESSION" "" 0.2 false
-
-# Image Analysis (requires base64 image data)
-python python/aift_image.py "base64_image_data" "What do you see in this image?" "YOUR_SESSION" "" 0.2 false
-
-# Voice Analysis (requires base64 audio data)
-python python/aift_voice.py "base64_audio_data" "What is being said in this audio?" "YOUR_SESSION" "" 0.2 false
+```
+uploads/
+├── backend/
+│   ├── pdf/          # Original PDF files
+│   ├── images/       # Original and processed images
+│   ├── audio/        # Original and processed audio files
+│   └── text/         # Extracted text files
+└── frontend/
+    ├── pdf/          # PDF files for frontend access
+    ├── images/       # Images for frontend access
+    ├── audio/        # Audio files for frontend access
+    └── text/         # Text files for frontend access
 ```
 
-### From TypeScript
+## Installation
+
+1. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Ensure the AIFT package is installed:
+```bash
+pip install aift
+```
+
+## Usage
+
+### File Processor
+
+Process individual files:
+
+```bash
+# Process PDF
+python file_processor.py --type pdf --input data.txt --filename document.pdf
+
+# Process image
+python file_processor.py --type image --input data.txt --filename image.jpg
+
+# Process audio
+python file_processor.py --type audio --input data.txt --filename audio.wav
+```
+
+### Upload Handler
+
+Handle file uploads:
+
+```bash
+python upload_handler.py <file_type> <filename> <base64_data>
+```
+
+### AIFT Integrated
+
+Process files with AI analysis:
+
+```bash
+# Analyze PDF
+python aift_integrated.py pdf data.txt "What is this document about?"
+
+# Analyze image
+python aift_integrated.py image data.txt "What do you see in this image?"
+
+# Analyze audio
+python aift_integrated.py audio data.txt "What is being said?"
+
+# Chat
+python aift_integrated.py chat data.txt "Hello, how are you?"
+```
+
+## API Integration
+
+The system integrates with the TypeScript backend through the `AIFTStandalone` class:
 
 ```typescript
-// TextQA
-const response = await AIFTStandalone.textqa('ซื้อขนมไป 20 เหลือเงินเท่าไหร่', {
-  sessionid: 'YOUR_SESSION',
-  context: 'มีเงิน 100 บาท',
-  temperature: 0.2,
-  return_json: false
-})
+// PDF analysis
+const result = await AIFTStandalone.pdfqa(pdfFile, question, params);
 
-// Chat
-const response = await AIFTStandalone.chat('สวัสดีครับ', {
-  sessionid: 'YOUR_SESSION',
-  temperature: 0.2,
-  return_json: false
-})
+// Image analysis
+const result = await AIFTStandalone.imageqa(imageFile, question, params);
 
-// Image Analysis
-const imageResponse = await AIFTStandalone.imageqa(imageFile, 'What do you see in this image?', {
-  sessionid: 'YOUR_SESSION',
-  temperature: 0.3,
-  return_json: false
-})
+// Audio analysis
+const result = await AIFTStandalone.voiceqa(audioFile, question, params);
 
-// Voice Analysis
-const voiceResponse = await AIFTStandalone.voiceqa(audioFile, 'What is being said in this audio?', {
-  sessionid: 'YOUR_SESSION',
-  temperature: 0.3,
-  return_json: false
-})
+// Text chat
+const result = await AIFTStandalone.chat(message, params);
+```
 
-## Benefits of Separate Scripts
+## File Types Supported
 
-1. **Maintainability**: Easy to modify Python code without touching TypeScript
-2. **Debugging**: Can test Python scripts independently
-3. **Reusability**: Scripts can be used by other applications
-4. **Version Control**: Python code is properly tracked in Git
-5. **Performance**: No need to generate Python code dynamically
-6. **Clean Code**: Separation of concerns between TypeScript and Python
+### PDF Files
+- **Input**: PDF files (base64 encoded)
+- **Output**: Extracted text + original PDF
+- **Processing**: Text extraction using PyPDF2
+
+### Image Files
+- **Supported formats**: JPEG, PNG, GIF, WebP
+- **Processing**: Enhancement, resizing, noise reduction
+- **Output**: Original + processed images
+
+### Audio Files
+- **Supported formats**: WAV, MP3, OGG, WebM, M4A
+- **Processing**: Normalization, noise reduction, resampling
+- **Output**: Original + processed audio
+
+### Text Files
+- **Input**: Plain text or base64 encoded text
+- **Output**: Saved text files
+- **Processing**: Direct text handling
 
 ## Error Handling
 
-Both scripts include proper error handling:
-- Parameter validation
-- Exception catching
-- Clear error messages
-- Proper exit codes 
+All scripts include comprehensive error handling:
+
+- File format validation
+- Processing error recovery
+- Temporary file cleanup
+- Detailed error messages
+
+## Testing
+
+Run the comprehensive test suite:
+
+```bash
+python test_file_processing.py
+```
+
+This will test:
+- File processor functionality
+- Upload handler
+- AIFT integration
+- Error handling
+
+## Dependencies
+
+### Required Packages
+- `aift` - AIFT package for AI analysis
+- `PyPDF2` - PDF text extraction
+- `Pillow` - Image processing
+- `opencv-python` - Advanced image processing
+- `librosa` - Audio processing
+- `soundfile` - Audio file I/O
+- `numpy` - Numerical operations
+
+### Optional Packages
+- `pathlib2` - Enhanced path handling
+
+## Configuration
+
+### API Key
+The AIFT API key is configured in the scripts:
+```python
+setting.set_api_key('Od2TqqTYP5FEOjtSX0yYcJgxRlSVGfR8')
+```
+
+### Directory Structure
+Files are automatically organized into backend and frontend directories:
+- **Backend**: For server-side processing and storage
+- **Frontend**: For client-side access and display
+
+## Performance Considerations
+
+- Large files are automatically resized/compressed
+- Temporary files are cleaned up after processing
+- Processing is optimized for AI analysis
+- Memory usage is managed for large files
+
+## Security
+
+- File type validation
+- Size limits enforced
+- Temporary file cleanup
+- Secure file handling
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Missing dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **File permission errors**
+   - Ensure write permissions for upload directories
+   - Check temp directory permissions
+
+3. **Memory issues with large files**
+   - Files are automatically resized
+   - Processing is optimized for memory efficiency
+
+4. **AIFT API errors**
+   - Check API key configuration
+   - Verify network connectivity
+   - Check API rate limits
+
+### Debug Mode
+
+Enable debug output by setting environment variables:
+```bash
+export DEBUG=1
+python file_processor.py --type pdf --input data.txt --filename test.pdf
+```
+
+## Contributing
+
+When adding new file types or processing methods:
+
+1. Update `file_processor.py` with new processing logic
+2. Add corresponding test cases
+3. Update documentation
+4. Test with various file formats and sizes
+
+## License
+
+This file processing system is part of the AI Thailand 2025 project. 

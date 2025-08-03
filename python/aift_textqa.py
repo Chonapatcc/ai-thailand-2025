@@ -33,12 +33,12 @@ def main():
         temperature = float(sys.argv[4]) if len(sys.argv) > 4 else 0.2
         return_json = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else False
         
-        # Call the Python textqa function
-        result = textqa.chat(
-            question, 
-            sessionid=sessionid, 
-            context=context, 
-            temperature=temperature, 
+        # Call the Python textqa function - use generate for direct model response
+        result = textqa.generate(
+            instruction=question,
+            system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+            max_new_tokens=512,
+            temperature=temperature,
             return_json=return_json
         )
         

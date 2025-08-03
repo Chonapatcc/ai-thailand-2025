@@ -134,10 +134,10 @@ export default function ChatPage() {
       let response: any
       
       if (uploadedFile) {
-        // Handle PDF upload using new Python script approach
+        // Handle PDF upload using Python script approach
         const formData = new FormData()
         formData.append('file', uploadedFile)
-        formData.append('message', content || 'Please summarize this paper')
+        formData.append('message', content || 'Please analyze this document')
         formData.append('context', JSON.stringify(attachedPapers))
         formData.append('history', JSON.stringify(messages.slice(-10)))
         
@@ -161,11 +161,12 @@ export default function ChatPage() {
         console.log('PDF upload API response:', response)
         
       } else if (selectedImage) {
-        // Handle image upload using new Python script approach
+        // Handle image upload using Python script approach
         const formData = new FormData()
         formData.append('image', selectedImage)
         formData.append('question', content || 'What do you see in this image?')
         formData.append('sessionid', 'web-chat-image')
+        formData.append('context', JSON.stringify(attachedPapers))
         formData.append('temperature', '0.3')
         
         console.log('Sending image upload to API:', {
@@ -187,11 +188,12 @@ export default function ChatPage() {
         console.log('Image upload API response:', response)
         
       } else if (selectedVoice) {
-        // Handle voice upload using new Python script approach
+        // Handle voice upload using Python script approach
         const formData = new FormData()
         formData.append('audio', selectedVoice)
         formData.append('question', content || 'What is being said in this audio?')
         formData.append('sessionid', 'web-chat-voice')
+        formData.append('context', JSON.stringify(attachedPapers))
         formData.append('temperature', '0.3')
         
         console.log('Sending voice upload to API:', {
@@ -213,19 +215,30 @@ export default function ChatPage() {
         console.log('Voice upload API response:', response)
         
       } else {
-        // Regular text message
+        // Regular text message using Python script approach
         console.log('Sending message to API:', {
           message: content,
           context: attachedPapers,
           history: messages.slice(-10)
         })
         
-        response = await ChatAPI.sendMessage({
-          message: content,
-          context: attachedPapers,
-          history: messages.slice(-10), // Send last 10 messages for context
+        const apiResponse = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: content,
+            context: attachedPapers,
+            history: messages.slice(-10), // Send last 10 messages for context
+          })
         })
         
+        if (!apiResponse.ok) {
+          throw new Error(`HTTP error! status: ${apiResponse.status}`)
+        }
+        
+        response = await apiResponse.json()
         console.log('API response:', response)
       }
 

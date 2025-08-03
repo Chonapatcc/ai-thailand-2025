@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       
       console.log('Processing voice analysis:', { question, filename: audioFile.name })
       
-      // Generate AI response for voice analysis
+      // Generate AI response for voice analysis using Python scripts
       let aiResponse: string
       try {
         aiResponse = await AIFTStandalone.voiceqa(audioFile, question, {
