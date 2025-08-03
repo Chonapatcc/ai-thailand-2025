@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Search, Loader2, ExternalLink, BookOpen, Calendar, Users, ChevronDown, ChevronUp, Filter } from "lucide-react"
 import Link from "next/link"
+import { Navigation } from "@/components/ui/navigation"
+import { calculateSimilarityScore, SimilarityScore } from "@/lib/similarity-utils"
 
 interface MatchedPaper {
   id: number
@@ -20,6 +22,7 @@ interface MatchedPaper {
   relevanceScore: number
   link: string
   abstract: string
+  similarityScore?: SimilarityScore
 }
 
 export default function MatchPage() {
@@ -77,10 +80,82 @@ export default function MatchPage() {
     if (!searchQuery.trim()) return
 
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setMatchedPapers(mockPapers)
-    setIsLoading(false)
+    setMatchedPapers([])
+
+    try {
+      // First, search uploaded files
+      const response = await fetch(`/api/files/search?q=${encodeURIComponent(searchQuery)}`)
+      
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`)
+      }
+      
+      const data = await response.json()
+
+      let results: MatchedPaper[] = []
+
+      if (data.success && data.files && data.files.length > 0) {
+        // Convert uploaded files to MatchedPaper format with LLM similarity scoring
+        const processedFiles = await Promise.all(
+          data.files.map(async (file: any, index: number) => {
+            try {
+              const similarityScore = await calculateSimilarityScore(
+                file.content || '',
+                searchQuery,
+                file.summary
+              )
+              
+              return {
+                id: index + 1,
+                title: file.filename,
+                authors: ['Uploaded Paper'],
+                year: new Date(file.uploadDate).getFullYear(),
+                venue: 'Uploaded',
+                topics: file.tags || [],
+                summary: similarityScore.summary,
+                relevanceScore: similarityScore.score, // This is now a percentage
+                link: file.sourceUrl || '#',
+                abstract: file.content?.substring(0, 200) + '...' || 'No content available',
+                similarityScore
+              }
+            } catch (error) {
+              console.error('Error calculating similarity for file:', file.filename, error)
+              return {
+                id: index + 1,
+                title: file.filename,
+                authors: ['Uploaded Paper'],
+                year: new Date(file.uploadDate).getFullYear(),
+                venue: 'Uploaded',
+                topics: file.tags || [],
+                summary: file.summary || 'No summary available',
+                relevanceScore: 50,
+                link: file.sourceUrl || '#',
+                abstract: file.content?.substring(0, 200) + '...' || 'No content available'
+              }
+            }
+          })
+        )
+        
+        results = processedFiles
+      }
+
+      // If no uploaded files found, show mock results
+      if (results.length === 0) {
+        results = mockPapers.filter(paper => 
+          paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          paper.topics.some(topic => topic.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          paper.summary.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      }
+
+      setMatchedPapers(results)
+    } catch (error) {
+      console.error('Search error:', error)
+      // Fallback to mock results
+      setMatchedPapers(mockPapers)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const toggleExpanded = (paperId: number) => {
@@ -94,34 +169,21 @@ export default function MatchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">ResearchAI</h1>
-          </Link>
-          <Link href="/dashboard">
-            <Button variant="outline">Back to Dashboard</Button>
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Research Paper Matching</h2>
-            <p className="text-gray-600">Find related papers based on your research interests or abstract</p>
+            <h2 className="text-3xl font-bold text-white mb-2">Research Paper Matching</h2>
+            <p className="text-purple-200">Find related papers based on your research interests or abstract</p>
           </div>
 
           {/* Search Section */}
-          <Card className="mb-8">
+          <Card className="mb-8 bg-white/5 backdrop-blur-md border-white/10">
             <CardHeader>
-              <CardTitle>Describe Your Research</CardTitle>
-              <CardDescription>Enter your research topic, abstract, or keywords to find related papers</CardDescription>
+              <CardTitle className="text-white">Describe Your Research</CardTitle>
+              <CardDescription className="text-purple-200">Enter your research topic, abstract, or keywords to find related papers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -161,8 +223,8 @@ export default function MatchPage() {
           {matchedPapers.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-gray-900">Found {matchedPapers.length} Related Papers</h3>
-                <Button variant="outline" size="sm">
+                <h3 className="text-xl font-semibold text-white">Found {matchedPapers.length} Related Papers</h3>
+                <Button variant="outline" size="sm" className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20">
                   <Filter className="mr-2 h-4 w-4" />
                   Filter Results
                 </Button>
@@ -170,17 +232,22 @@ export default function MatchPage() {
 
               <div className="space-y-4">
                 {matchedPapers.map((paper) => (
-                  <Card key={paper.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={paper.id} className="hover:shadow-lg transition-shadow bg-white/5 backdrop-blur-md border-white/10">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <CardTitle className="text-lg">{paper.title}</CardTitle>
+                            <CardTitle className="text-lg truncate max-w-md text-white">{paper.title}</CardTitle>
                             <Badge className={getRelevanceColor(paper.relevanceScore)}>
                               {paper.relevanceScore}% match
                             </Badge>
+                            {paper.similarityScore && (
+                              <div className="bg-purple-500/20 px-2 py-1 rounded-full">
+                                <span className="text-xs text-purple-300 font-medium">AI: {paper.similarityScore.explanation}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                          <div className="flex items-center space-x-4 text-sm text-purple-300 mb-3">
                             <div className="flex items-center">
                               <Users className="mr-1 h-4 w-4" />
                               {paper.authors.slice(0, 2).join(", ")}
@@ -195,7 +262,7 @@ export default function MatchPage() {
                               {paper.venue}
                             </div>
                           </div>
-                          <CardDescription className="mb-3">{paper.summary}</CardDescription>
+                          <CardDescription className="mb-3 text-purple-200">{paper.summary}</CardDescription>
                         </div>
                         <div className="flex flex-col space-y-2 ml-4">
                           <Button variant="outline" size="sm" asChild>
@@ -247,6 +314,9 @@ export default function MatchPage() {
                 </Button>
                 <Button asChild className="bg-purple-600 hover:bg-purple-700">
                   <Link href="/chat">Discuss with AI</Link>
+                </Button>
+                <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  <Link href="/summarize">Upload & Summarize</Link>
                 </Button>
               </div>
             </div>

@@ -1,0 +1,101 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Build stage
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - main
+    - develop
+
+# Test stage
+test:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - npm ci
+  script:
+    - npm run lint
+    - npm run build
+  only:
+    - main
+    - develop
+
+# Deploy to staging
+deploy_staging:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $STAGING_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $STAGING_USER@$STAGING_HOST "
+      docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+      docker pull $CI_REGISTRY_IMAGE:latest &&
+      docker stop ai-thailand-2025-staging || true &&
+      docker rm ai-thailand-2025-staging || true &&
+      docker run -d --name ai-thailand-2025-staging -p 3001:3000 
+        -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+        -e NODE_ENV=production
+        -e PORT=3000
+        -v /var/ai-thailand-uploads:/app/uploads
+        $CI_REGISTRY_IMAGE:latest"
+  environment:
+    name: staging
+    url: http://$STAGING_HOST:3001
+  only:
+    - develop
+
+# Deploy to production
+deploy_production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $PRODUCTION_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $PRODUCTION_USER@$PRODUCTION_HOST "
+      docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+      docker pull $CI_REGISTRY_IMAGE:latest &&
+      docker stop ai-thailand-2025 || true &&
+      docker rm ai-thailand-2025 || true &&
+      docker run -d --name ai-thailand-2025 -p 3000:3000 
+        -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+        -e NODE_ENV=production
+        -e PORT=3000
+        -e NEXT_PUBLIC_APP_URL=$PRODUCTION_URL
+        -v /var/ai-thailand-uploads:/app/uploads
+        --restart unless-stopped
+        $CI_REGISTRY_IMAGE:latest"
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  only:
+    - main
+  when: manual 

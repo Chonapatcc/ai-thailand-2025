@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,78 +22,193 @@ import {
   Layers,
   Network,
   Brain,
+  FileText,
+  Upload,
+  Check,
+  Plus,
 } from "lucide-react"
 import Link from "next/link"
+import { Navigation } from "@/components/ui/navigation"
+import { DownloadArchive } from "@/components/ui/download-archive"
+import { calculateHistoricalSimilarity, SimilarityScore } from "@/lib/similarity-utils"
 
-// Mock data focused on AI/Tech research
-const recentSummaries = [
-  {
-    id: 1,
-    title: "Transformer Architecture Optimization for Large Language Models",
-    date: "2024-01-15",
-    status: "completed",
-    language: "EN",
-    categories: ["Architecture", "Optimization", "LLM"],
-    aiScore: 96,
-    field: "Natural Language Processing",
-  },
-  {
-    id: 2,
-    title: "Convolutional Neural Networks for Real-time Object Detection",
-    date: "2024-01-14",
-    status: "completed",
-    language: "EN",
-    categories: ["CNN", "Computer Vision", "Real-time"],
-    aiScore: 92,
-    field: "Computer Vision",
-  },
-  {
-    id: 3,
-    title: "Reinforcement Learning in Autonomous Vehicle Navigation",
-    date: "2024-01-13",
-    status: "completed",
-    language: "EN",
-    categories: ["RL", "Autonomous Systems", "Navigation"],
-    aiScore: 89,
-    field: "Robotics",
-  },
-]
+interface UploadedFile {
+  id: string
+  filename: string
+  size: number
+  uploadDate: string
+  summary?: string
+  tags: string[]
+  similarityScore?: SimilarityScore
+}
 
-const matchedPapers = [
-  {
-    id: 1,
-    title: "Attention Is All You Need: Transformer Architecture Deep Dive",
-    topics: ["Transformers", "Attention Mechanism", "Neural Architecture"],
-    summary: "Revolutionary self-attention mechanism that transformed NLP and beyond...",
-    date: "2024-01-15",
-    relevance: 98,
-    citations: 47520,
-    field: "Deep Learning",
-  },
-  {
-    id: 2,
-    title: "BERT: Bidirectional Encoder Representations from Transformers",
-    topics: ["BERT", "Pre-training", "Language Understanding"],
-    summary: "Breakthrough in bidirectional language representation learning...",
-    date: "2024-01-14",
-    relevance: 95,
-    citations: 28340,
-    field: "NLP",
-  },
-  {
-    id: 3,
-    title: "ResNet: Deep Residual Learning for Image Recognition",
-    topics: ["ResNet", "Computer Vision", "Deep Networks"],
-    summary: "Solving vanishing gradient problem with residual connections...",
-    date: "2024-01-13",
-    relevance: 91,
-    citations: 89760,
-    field: "Computer Vision",
-  },
-]
+interface TechDiscovery {
+  id: string
+  title: string
+  description: string
+  category: string
+  matchPercentage: number
+  date: string
+  impact: 'high' | 'medium' | 'low'
+  status: 'active' | 'emerging' | 'mature'
+}
+
+interface ResearchProgress {
+  id: string
+  title: string
+  progress: number
+  status: 'in-progress' | 'completed' | 'planned'
+  category: string
+  lastUpdated: string
+  team: string[]
+  priority: 'high' | 'medium' | 'low'
+}
 
 export default function DashboardPage() {
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [techDiscoveries, setTechDiscoveries] = useState<TechDiscovery[]>([])
+  const [researchProgress, setResearchProgress] = useState<ResearchProgress[]>([])
+  const [isLoadingTech, setIsLoadingTech] = useState(false)
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  const handleFileSelection = (fileId: string) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) 
+        ? prev.filter(id => id !== fileId)
+        : [...prev, fileId]
+    )
+  }
+
+  const fetchUploadedFiles = async () => {
+    setIsLoadingFiles(true)
+    try {
+      const response = await fetch('/api/files/list')
+      if (response.ok) {
+        const data = await response.json()
+        const files = data.files || []
+        
+        // Calculate similarity scores for each file
+        const filesWithScores = await Promise.all(
+          files.map(async (file: any) => {
+            try {
+              // Mock recent queries for historical similarity
+              const recentQueries = ['AI research', 'machine learning', 'deep learning', 'neural networks']
+              const similarityScore = await calculateHistoricalSimilarity(file.content || '', recentQueries)
+              
+              return {
+                ...file,
+                similarityScore
+              }
+            } catch (error) {
+              console.error('Error calculating similarity for file:', file.filename, error)
+              return {
+                ...file,
+                similarityScore: {
+                  score: 50,
+                  explanation: 'Similarity calculation failed',
+                  summary: 'Unable to calculate relevance score'
+                }
+              }
+            }
+          })
+        )
+        
+        setUploadedFiles(filesWithScores)
+      }
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error)
+    } finally {
+      setIsLoadingFiles(false)
+    }
+  }
+
+  const fetchTechDiscoveries = async () => {
+    setIsLoadingTech(true)
+    try {
+      const response = await fetch('/api/tech-discoveries')
+      if (response.ok) {
+        const data = await response.json()
+        setTechDiscoveries(data.discoveries || [])
+      } else {
+        console.error('Tech discoveries API failed:', response.status)
+        setTechDiscoveries([])
+      }
+    } catch (error) {
+      console.error('Error fetching tech discoveries:', error)
+    } finally {
+      setIsLoadingTech(false)
+    }
+  }
+
+  const fetchResearchProgress = async () => {
+    setIsLoadingProgress(true)
+    try {
+      const response = await fetch('/api/research-progress')
+      if (response.ok) {
+        const data = await response.json()
+        setResearchProgress(data.progress || [])
+      } else {
+        console.error('Research progress API failed:', response.status)
+        setResearchProgress([])
+      }
+    } catch (error) {
+      console.error('Error fetching research progress:', error)
+    } finally {
+      setIsLoadingProgress(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUploadedFiles()
+    fetchTechDiscoveries()
+    fetchResearchProgress()
+  }, [])
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500/20 text-red-300 border-red-400/30'
+      case 'medium': return 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30'
+      case 'low': return 'bg-green-500/20 text-green-300 border-green-400/30'
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-400/30'
+    }
+  }
+
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case 'high': return 'bg-red-500/20 text-red-300 border-red-400/30'
+      case 'medium': return 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30'
+      case 'low': return 'bg-green-500/20 text-green-300 border-green-400/30'
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-400/30'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500/20 text-green-300 border-green-400/30'
+      case 'in-progress': return 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+      case 'planned': return 'bg-purple-500/20 text-purple-300 border-purple-400/30'
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-400/30'
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -103,44 +218,31 @@ export default function DashboardPage() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 backdrop-blur-md bg-white/5 border-b border-white/10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="h-10 w-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-lg">
-                <Cpu className="h-6 w-6 text-white" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                AnomyResearch
-              </h1>
-              <p className="text-xs text-purple-300">AI Research Hub</p>
-            </div>
-          </Link>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-4 w-4" />
-              <Input
-                placeholder="Search AI research patterns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-purple-300 backdrop-blur-sm"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 backdrop-blur-sm bg-transparent"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              AI Filter
-            </Button>
+      {/* Navigation */}
+      <Navigation />
+      
+      {/* Search Bar */}
+      <div className="relative z-10 container mx-auto px-4 py-4">
+        <div className="flex items-center justify-center space-x-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-4 w-4" />
+            <Input
+              placeholder="Search AI research patterns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-purple-300 backdrop-blur-sm"
+            />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 backdrop-blur-sm bg-transparent"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            AI Filter
+          </Button>
         </div>
-      </header>
+      </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-4 gap-8">
@@ -267,120 +369,177 @@ export default function DashboardPage() {
               </TabsList>
 
               <TabsContent value="summaries" className="space-y-4">
-                {recentSummaries.map((summary) => (
-                  <Card
-                    key={summary.id}
-                    className="group bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <CardTitle className="text-white text-lg group-hover:text-purple-200 transition-colors">
-                              {summary.title}
-                            </CardTitle>
-                            <div className="flex items-center space-x-2">
-                              <Badge className="bg-blue-500/50 text-white">{summary.field}</Badge>
-                              <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded-full">
-                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                                <span className="text-xs text-green-300 font-medium">{summary.aiScore}% AI</span>
+                {isLoadingFiles ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+                    <p className="text-purple-200 mt-2">Loading uploaded files...</p>
+                  </div>
+                ) : uploadedFiles.length > 0 ? (
+                  uploadedFiles.map((file) => (
+                    <Card
+                      key={file.id}
+                      className="group bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300"
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <CardTitle className="text-white text-lg group-hover:text-purple-200 transition-colors truncate max-w-xs">
+                                {file.filename}
+                              </CardTitle>
+                              <div className="flex items-center space-x-2">
+                                <Badge className="bg-green-500/50 text-white">PDF</Badge>
+                                {file.similarityScore && (
+                                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 rounded-full">
+                                    <span className="text-xs text-white font-medium">{file.similarityScore.score}% match</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center space-x-1 bg-blue-500/20 px-2 py-1 rounded-full">
+                                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                  <span className="text-xs text-blue-300 font-medium">{formatFileSize(file.size)}</span>
+                                </div>
                               </div>
                             </div>
+                            <div className="flex items-center space-x-4 text-sm text-purple-300 mb-3">
+                              <div className="flex items-center">
+                                <Calendar className="mr-1 h-4 w-4" />
+                                {formatDate(file.uploadDate)}
+                              </div>
+                              <div className="flex items-center">
+                                <Activity className="mr-1 h-4 w-4" />
+                                AI Analyzed
+                              </div>
+                            </div>
+                            {file.similarityScore?.summary && (
+                              <p className="text-purple-200 text-sm mb-3 line-clamp-2">
+                                {file.similarityScore.summary}
+                              </p>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-purple-300 mb-3">
-                            <div className="flex items-center">
-                              <Calendar className="mr-1 h-4 w-4" />
-                              {summary.date}
-                            </div>
-                            <div className="flex items-center">
-                              <Activity className="mr-1 h-4 w-4" />
-                              AI Analysis Complete
-                            </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
+                              onClick={() => handleFileSelection(file.id)}
+                            >
+                              {selectedFiles.includes(file.id) ? (
+                                <>
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Selected
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Select
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Export
-                          </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {file.tags.slice(0, 5).map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="border-purple-400/50 text-purple-300 hover:bg-purple-500/20 transition-colors"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                          {file.tags.length > 5 && (
+                            <Badge
+                              variant="outline"
+                              className="border-purple-400/50 text-purple-300"
+                            >
+                              +{file.tags.length - 5} more
+                            </Badge>
+                          )}
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {summary.categories.map((category) => (
-                          <Badge
-                            key={category}
-                            variant="outline"
-                            className="border-purple-400/50 text-purple-300 hover:bg-purple-500/20 transition-colors"
-                          >
-                            {category}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FileText className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="text-white text-lg font-medium mb-2">No files uploaded yet</h3>
+                    <p className="text-purple-200 mb-4">Upload your first research paper to get started</p>
+                    <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                      <Link href="/summarize">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Paper
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-white/10">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-white font-medium">Bulk Actions</h4>
+                      <DownloadArchive fileIds={selectedFiles} />
+                    </div>
+                    <p className="text-purple-200 text-sm">
+                      Select files to download as archive
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="matches" className="space-y-4">
-                {matchedPapers.map((paper) => (
+                {techDiscoveries.map((discovery) => (
                   <Card
-                    key={paper.id}
+                    key={discovery.id}
                     className="group bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300"
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <CardTitle className="text-white text-lg group-hover:text-purple-200 transition-colors">
-                              {paper.title}
+                            <CardTitle className="text-white text-lg group-hover:text-purple-200 transition-colors truncate max-w-xs">
+                              {discovery.title}
                             </CardTitle>
                             <div className="flex items-center space-x-2">
                               <div className="bg-gradient-to-r from-green-500 to-blue-500 px-2 py-1 rounded-full">
-                                <span className="text-xs text-white font-medium">{paper.relevance}% match</span>
+                                <span className="text-xs text-white font-medium">{discovery.matchPercentage}% match</span>
                               </div>
-                              <div className="bg-yellow-500/20 px-2 py-1 rounded-full">
-                                <span className="text-xs text-yellow-300 font-medium">{paper.citations} citations</span>
-                              </div>
-                              <Badge className="bg-purple-500/50 text-white">{paper.field}</Badge>
+                              <Badge className="bg-purple-500/50 text-white">{discovery.category}</Badge>
                             </div>
                           </div>
-                          <CardDescription className="text-purple-200 mb-3">{paper.summary}</CardDescription>
+                          <CardDescription className="text-purple-200 mb-3">{discovery.description}</CardDescription>
                           <div className="flex items-center text-sm text-purple-300">
                             <Clock className="mr-1 h-4 w-4" />
-                            {paper.date}
+                            {formatDate(discovery.date)}
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
-                        >
-                          <Layers className="h-4 w-4 mr-1" />
-                          Deep Analyze
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={`${getImpactColor(discovery.impact)} border-2`}>
+                            {discovery.impact}
+                          </Badge>
+                          <Badge className={`${getStatusColor(discovery.status)} border-2`}>
+                            {discovery.status}
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-2">
-                        {paper.topics.map((topic) => (
-                          <Badge key={topic} variant="secondary" className="bg-purple-500/30 text-purple-200">
-                            {topic}
-                          </Badge>
-                        ))}
+                        {/* No specific topics for discovery, just category */}
+                        <Badge key={discovery.category} variant="secondary" className="bg-purple-500/30 text-purple-200">
+                          {discovery.category}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -388,33 +547,99 @@ export default function DashboardPage() {
               </TabsContent>
 
               <TabsContent value="chats" className="space-y-4">
-                <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                  <CardContent className="pt-6">
-                    <div className="text-center py-12">
-                      <div className="relative mb-6">
-                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                          <MessageSquare className="h-10 w-10 text-white" />
+                {isLoadingProgress ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+                    <p className="text-purple-200 mt-2">Loading research progress...</p>
+                  </div>
+                ) : researchProgress.length > 0 ? (
+                  researchProgress.map((project) => (
+                    <Card
+                      key={project.id}
+                      className="group bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300"
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <CardTitle className="text-white text-lg group-hover:text-purple-200 transition-colors truncate max-w-xs">
+                                {project.title}
+                              </CardTitle>
+                              <div className="flex items-center space-x-2">
+                                <Badge className={`${getStatusColor(project.status)} border-2`}>
+                                  {project.status}
+                                </Badge>
+                                <Badge className={`${getPriorityColor(project.priority)} border-2`}>
+                                  {project.priority}
+                                </Badge>
+                                <Badge className="bg-purple-500/50 text-white">{project.category}</Badge>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-purple-300 mb-3">
+                              <div className="flex items-center">
+                                <Calendar className="mr-1 h-4 w-4" />
+                                {formatDate(project.lastUpdated)}
+                              </div>
+                              <div className="flex items-center">
+                                <Activity className="mr-1 h-4 w-4" />
+                                {project.team.length} team members
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between text-sm text-purple-200 mb-1">
+                                <span>Progress</span>
+                                <span>{project.progress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${project.progress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {project.team.map((member, index) => (
+                                <Badge key={index} variant="secondary" className="bg-blue-500/30 text-blue-200 text-xs">
+                                  {member}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Details
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-green-400/50 text-green-200 hover:bg-green-500/20 bg-transparent"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Chat
+                            </Button>
+                          </div>
                         </div>
-                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
-                          <Sparkles className="h-4 w-4 text-yellow-900" />
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-medium text-white mb-3">AI Research Conversations</h3>
-                      <p className="text-purple-200 mb-6 max-w-md mx-auto">
-                        Discuss algorithms, architectures, and breakthrough AI research with our specialized assistant
-                      </p>
-                      <Button
-                        asChild
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:scale-105 transition-all duration-300"
-                      >
-                        <Link href="/chat">
-                          <Brain className="mr-2 h-4 w-4" />
-                          Start AI Research Chat
-                        </Link>
-                      </Button>
+                      </CardHeader>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Activity className="h-8 w-8 text-purple-300" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <h3 className="text-lg font-semibold text-white mb-2">No Research Projects</h3>
+                    <p className="text-purple-200 mb-4">Start tracking your research progress and team collaboration</p>
+                    <Button className="bg-purple-600 hover:bg-purple-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Project
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

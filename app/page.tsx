@@ -14,23 +14,38 @@ import {
   Network,
 } from "lucide-react"
 import Link from "next/link"
+import { OptimizedImage } from "@/components/ui/optimized-image"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <OptimizedImage
+          src="/illustration-anime-city.jpg"
+          alt="Anime City Background"
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+          quality={85}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/70 to-slate-900/80"></div>
+      </div>
+
       {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      <div className="absolute inset-0 overflow-hidden z-0">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
       {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {[...Array(15)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-white/20 rounded-full animate-float"
+            className="absolute w-1 h-1 bg-white/30 rounded-full animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -42,7 +57,7 @@ export default function HomePage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 backdrop-blur-md bg-white/5 border-b border-white/10 sticky top-0">
+      <header className="relative z-10 backdrop-blur-md bg-white/10 border-b border-white/20 sticky top-0">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="relative">
@@ -178,11 +193,11 @@ export default function HomePage() {
             ].map((feature, index) => (
               <Card
                 key={index}
-                className="group relative overflow-hidden bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all duration-500 hover:scale-105 hover:shadow-2xl"
+                className="group relative overflow-hidden bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-105 hover:shadow-2xl"
                 style={{ animationDelay: feature.delay }}
               >
                 <div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
+                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`}
                 ></div>
                 <CardHeader className="relative z-10">
                   <div
@@ -213,7 +228,7 @@ export default function HomePage() {
               <div key={index} className="group">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <div className="relative bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 group-hover:bg-white/10 transition-all duration-300">
+                  <div className="relative bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 group-hover:bg-white/20 transition-all duration-300">
                     <stat.icon className="h-8 w-8 text-purple-400 mx-auto mb-4 group-hover:scale-110 transition-transform" />
                     <div className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
                       {stat.number}
@@ -232,7 +247,7 @@ export default function HomePage() {
         <div className="container mx-auto text-center">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-3xl blur-2xl"></div>
-            <div className="relative bg-white/5 backdrop-blur-md rounded-3xl p-12 border border-white/10">
+            <div className="relative bg-white/10 backdrop-blur-md rounded-3xl p-12 border border-white/20">
               <h3 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-6">
                 Ready to Decode AI Research?
               </h3>
@@ -256,7 +271,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 bg-black/20 backdrop-blur-md border-t border-white/10 py-12 px-4">
+      <footer className="relative z-10 bg-black/30 backdrop-blur-md border-t border-white/20 py-12 px-4">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-6">
             <div className="h-8 w-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">

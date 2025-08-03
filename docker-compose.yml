@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ai-thailand-2025:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_URL=${OPENROUTER_URL}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - UPLOAD_DIR=./uploads
+      - MAX_FILE_SIZE=52428800
+      - CORS_ORIGIN=*
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 

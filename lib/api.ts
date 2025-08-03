@@ -4,6 +4,8 @@ export interface ChatMessage {
   content: string
   timestamp: Date
   attachedPaper?: string
+  attachedImage?: File | null
+  attachedVoice?: File | null
 }
 
 export interface ChatRequest {
@@ -36,14 +38,45 @@ export class ChatAPI {
         body: JSON.stringify(data),
       })
 
-      if (!response.ok) {
-        console.error('API response error:', response.status, response.statusText)
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Get raw text from server instead of checking response.ok
+      const rawText = await response.text()
+      console.log('Raw response text:', rawText)
+      
+      // Use AIFT standalone function for Thai responses
+      const { AIFTStandalone } = await import('./aift-standalone')
+      
+      // Check if the message contains Thai text
+      const message = data.message || ''
+      const hasThaiText = /[\u0E00-\u0E7F]/.test(message)
+      
+      if (hasThaiText) {
+        console.log('Thai text detected, using AIFT standalone function')
+        const thaiResponse = await AIFTStandalone.textqa(message, {
+          sessionid: 'api-chat',
+          context: data.context ? data.context.join(', ') : '',
+          temperature: 0.7,
+          return_json: false
+        })
+        
+        return {
+          message: thaiResponse,
+          success: true
+        }
       }
-
-      const result = await response.json()
-      console.log('API response result:', result)
-      return result
+      
+      // For non-Thai text, try to parse JSON response
+      try {
+        const result = JSON.parse(rawText)
+        console.log('API response result:', result)
+        return result
+      } catch (parseError) {
+        console.log('Failed to parse JSON, returning raw text')
+        return {
+          message: rawText,
+          success: true
+        }
+      }
+      
     } catch (error) {
       console.error('API request failed:', error)
       throw error
@@ -51,7 +84,16 @@ export class ChatAPI {
   }
 
   static async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-    return this.makeRequest('/chat', request)
+    const result = await this.makeRequest('/chat', request)
+    
+    // Handle the new response format
+    if (result.success && result.message) {
+      return {
+        message: result.message
+      }
+    }
+    
+    return result
   }
 
   static async analyzePapers(papers: string[], question: string): Promise<ChatResponse> {
