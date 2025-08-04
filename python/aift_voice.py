@@ -50,14 +50,16 @@ def main():
             print(f"Error: Invalid audio data format - {str(e)}")
             sys.exit(1)
         
-        # Create a comprehensive prompt for audio analysis
+        # Create a comprehensive Thai prompt for audio analysis
         audio_prompt = f"""
-Please analyze this audio content and answer the following question: {question}
+กรุณาวิเคราะห์เนื้อหาออดิโอนี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the audio content and answer the question comprehensively.
-If the audio contains speech, please transcribe and analyze the spoken content.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาในออดิโอและตอบคำถามอย่างครบถ้วน
+หากออดิโอมีเสียงพูด กรุณาแปลและวิเคราะห์เนื้อหาที่พูด
+หากเป็นเสียงเพลงหรือเสียงธรรมชาติ กรุณาอธิบายรายละเอียด
+หากเป็นเสียงที่เกี่ยวข้องกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจน
 """
         
         # Call the Python textqa function with audio context

@@ -26,11 +26,13 @@ import {
   Upload,
   Check,
   Plus,
+  RefreshCw,
 } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/ui/navigation"
 import { DownloadArchive } from "@/components/ui/download-archive"
 import { calculateHistoricalSimilarity, SimilarityScore } from "@/lib/similarity-utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface UploadedFile {
   id: string
@@ -40,6 +42,10 @@ interface UploadedFile {
   summary?: string
   tags: string[]
   similarityScore?: SimilarityScore
+  fileType?: string
+  frontendPath?: string
+  backendPath?: string
+  content?: string
 }
 
 interface TechDiscovery {
@@ -73,6 +79,7 @@ export default function DashboardPage() {
   const [isLoadingTech, setIsLoadingTech] = useState(false)
   const [isLoadingProgress, setIsLoadingProgress] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const { toast } = useToast()
 
   const handleFileSelection = (fileId: string) => {
     setSelectedFiles(prev => 
@@ -89,6 +96,10 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         const files = data.files || []
+        
+        // Check if we have new files
+        const previousFileCount = uploadedFiles.length
+        const newFileCount = files.length
         
         // Calculate similarity scores for each file
         const filesWithScores = await Promise.all(
@@ -117,12 +128,49 @@ export default function DashboardPage() {
         )
         
         setUploadedFiles(filesWithScores)
+        
+        // Show notification if new files were added
+        if (newFileCount > previousFileCount && previousFileCount > 0) {
+          const newFilesCount = newFileCount - previousFileCount
+          toast({
+            title: "ไฟล์ใหม่ถูกอัปโหลด",
+            description: `พบไฟล์ใหม่ ${newFilesCount} ไฟล์ในระบบ`,
+            duration: 5000,
+          })
+        }
+        
+        // Also check for new files when page loads
+        if (newFileCount > 0 && previousFileCount === 0) {
+          toast({
+            title: "ไฟล์ถูกโหลดแล้ว",
+            description: `พบไฟล์ ${newFileCount} ไฟล์ในระบบ`,
+            duration: 3000,
+          })
+        }
+        
+        // Show success message for manual refresh
+        if (isLoadingFiles && newFileCount === previousFileCount && previousFileCount > 0) {
+          toast({
+            title: "รีเฟรชสำเร็จ",
+            description: `โหลดไฟล์ ${newFileCount} ไฟล์แล้ว`,
+            duration: 2000,
+          })
+        }
       }
     } catch (error) {
       console.error('Error fetching uploaded files:', error)
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง",
+        variant: "destructive",
+      })
     } finally {
       setIsLoadingFiles(false)
     }
+    
+    // Also refresh tech discoveries and research progress
+    fetchTechDiscoveries()
+    fetchResearchProgress()
   }
 
   const fetchTechDiscoveries = async () => {
@@ -165,6 +213,28 @@ export default function DashboardPage() {
     fetchUploadedFiles()
     fetchTechDiscoveries()
     fetchResearchProgress()
+  }, [])
+
+  // Add refresh mechanism for files
+  useEffect(() => {
+    // Set up interval to refresh files every 30 seconds
+    const interval = setInterval(() => {
+      fetchUploadedFiles()
+    }, 30000)
+
+    // Also refresh when the page becomes visible (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchUploadedFiles()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   const formatFileSize = (bytes: number) => {
@@ -227,7 +297,7 @@ export default function DashboardPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-4 w-4" />
             <Input
-              placeholder="Search AI research patterns..."
+              placeholder="ค้นหารูปแบบงานวิจัย AI..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-purple-300 backdrop-blur-sm"
@@ -239,7 +309,17 @@ export default function DashboardPage() {
             className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 backdrop-blur-sm bg-transparent"
           >
             <Filter className="h-4 w-4 mr-2" />
-            AI Filter
+            กรอง AI
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchUploadedFiles}
+            disabled={isLoadingFiles}
+            className="border-green-400/50 text-green-200 hover:bg-green-500/20 backdrop-blur-sm bg-transparent"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+            {isLoadingFiles ? 'กำลังโหลด...' : 'รีเฟรชไฟล์'}
           </Button>
         </div>
       </div>
@@ -253,7 +333,7 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Zap className="mr-2 h-5 w-5 text-purple-400" />
-                  AI Research Tools
+                  เครื่องมือวิจัย AI
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -261,19 +341,19 @@ export default function DashboardPage() {
                   {
                     href: "/summarize",
                     icon: Brain,
-                    label: "Analyze AI Papers",
+                    label: "วิเคราะห์เอกสาร AI",
                     gradient: "from-blue-500 to-purple-600",
                   },
                   {
                     href: "/match",
                     icon: Network,
-                    label: "Find Tech Patterns",
+                    label: "ค้นหารูปแบบเทคโนโลยี",
                     gradient: "from-purple-500 to-pink-600",
                   },
                   {
                     href: "/chat",
                     icon: MessageSquare,
-                    label: "AI Research Chat",
+                    label: "แชทวิจัย AI",
                     gradient: "from-pink-500 to-red-600",
                   },
                 ].map((action, index) => (
@@ -296,15 +376,15 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Activity className="mr-2 h-5 w-5 text-green-400" />
-                  Research Progress
+                  ความคืบหน้างานวิจัย
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   {[
-                    { label: "AI Papers Analyzed", value: 85, max: 100, color: "from-blue-500 to-purple-600" },
-                    { label: "Tech Connections", value: 72, max: 100, color: "from-purple-500 to-pink-600" },
-                    { label: "Algorithm Insights", value: 68, max: 100, color: "from-pink-500 to-red-600" },
+                    { label: "เอกสาร AI ที่วิเคราะห์แล้ว", value: 85, max: 100, color: "from-blue-500 to-purple-600" },
+                    { label: "การเชื่อมต่อเทคโนโลยี", value: 72, max: 100, color: "from-purple-500 to-pink-600" },
+                    { label: "ข้อมูลเชิงลึกอัลกอริทึม", value: 68, max: 100, color: "from-pink-500 to-red-600" },
                   ].map((item, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -336,11 +416,11 @@ export default function DashboardPage() {
                       <Sparkles className="h-3 w-3 text-yellow-900" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-white mb-1">AI Intelligence</div>
+                  <div className="text-2xl font-bold text-white mb-1">ปัญญาประดิษฐ์</div>
                   <div className="text-4xl font-bold bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
                     96.8
                   </div>
-                  <div className="text-purple-300 text-sm">Research Efficiency Score</div>
+                  <div className="text-purple-300 text-sm">คะแนนประสิทธิภาพการวิจัย</div>
                 </div>
               </CardContent>
             </Card>
@@ -349,22 +429,30 @@ export default function DashboardPage() {
           {/* Main Content */}
           <div className="lg:col-span-3">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
-                AI Research Dashboard
-              </h2>
-              <p className="text-purple-200">Monitor your artificial intelligence research journey</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
+                    แดชบอร์ดวิจัย AI
+                  </h2>
+                  <p className="text-purple-200">ติดตามการเดินทางวิจัยปัญญาประดิษฐ์ของคุณ</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">{uploadedFiles.length}</div>
+                  <div className="text-sm text-purple-300">ไฟล์ที่อัปโหลด</div>
+                </div>
+              </div>
             </div>
 
             <Tabs defaultValue="summaries" className="space-y-6">
               <TabsList className="grid w-full grid-cols-3 bg-white/10 backdrop-blur-sm border-white/20">
                 <TabsTrigger value="summaries" className="data-[state=active]:bg-purple-500/50 text-white">
-                  AI Paper Analysis
+                  การวิเคราะห์เอกสาร AI
                 </TabsTrigger>
                 <TabsTrigger value="matches" className="data-[state=active]:bg-purple-500/50 text-white">
-                  Tech Discoveries
+                  การค้นพบเทคโนโลยี
                 </TabsTrigger>
                 <TabsTrigger value="chats" className="data-[state=active]:bg-purple-500/50 text-white">
-                  AI Conversations
+                  การสนทนา AI
                 </TabsTrigger>
               </TabsList>
 
@@ -372,7 +460,16 @@ export default function DashboardPage() {
                 {isLoadingFiles ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
-                    <p className="text-purple-200 mt-2">Loading uploaded files...</p>
+                    <p className="text-purple-200 mt-2">กำลังโหลดไฟล์ที่อัปโหลด...</p>
+                    <div className="flex justify-center mt-4 space-x-1">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                          style={{ animationDelay: `${i * 0.2}s` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 ) : uploadedFiles.length > 0 ? (
                   uploadedFiles.map((file) => (
@@ -388,7 +485,17 @@ export default function DashboardPage() {
                                 {file.filename}
                               </CardTitle>
                               <div className="flex items-center space-x-2">
-                                <Badge className="bg-green-500/50 text-white">PDF</Badge>
+                                <Badge className="bg-green-500/50 text-white">{file.fileType?.toUpperCase() || 'PDF'}</Badge>
+                                {file.frontendPath && (
+                                  <Badge className="bg-orange-500/50 text-white text-xs">
+                                    📁 Frontend/{file.frontendPath.split('/')[1]}
+                                  </Badge>
+                                )}
+                                {file.backendPath && (
+                                  <Badge className="bg-blue-500/50 text-white text-xs">
+                                    📁 Backend/{file.backendPath.split('/')[1]}
+                                  </Badge>
+                                )}
                                 {file.similarityScore && (
                                   <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 rounded-full">
                                     <span className="text-xs text-white font-medium">{file.similarityScore.score}% match</span>
@@ -407,8 +514,14 @@ export default function DashboardPage() {
                               </div>
                               <div className="flex items-center">
                                 <Activity className="mr-1 h-4 w-4" />
-                                AI Analyzed
+                                วิเคราะห์โดย AI แล้ว
                               </div>
+                              {file.frontendPath && (
+                                <div className="flex items-center">
+                                  <FileText className="mr-1 h-4 w-4" />
+                                  <span className="text-xs">📁 {file.frontendPath}</span>
+                                </div>
+                              )}
                             </div>
                             {file.similarityScore?.summary && (
                               <p className="text-purple-200 text-sm mb-3 line-clamp-2">
@@ -426,12 +539,12 @@ export default function DashboardPage() {
                               {selectedFiles.includes(file.id) ? (
                                 <>
                                   <Check className="h-4 w-4 mr-1" />
-                                  Selected
+                                  เลือกแล้ว
                                 </>
                               ) : (
                                 <>
                                   <Plus className="h-4 w-4 mr-1" />
-                                  Select
+                                  เลือก
                                 </>
                               )}
                             </Button>
@@ -439,9 +552,10 @@ export default function DashboardPage() {
                               variant="outline"
                               size="sm"
                               className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
+                              title={`Frontend: ${file.frontendPath || 'N/A'}\nBackend: ${file.backendPath || 'N/A'}`}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View
+                              ดู
                             </Button>
                           </div>
                         </div>
@@ -474,12 +588,12 @@ export default function DashboardPage() {
                     <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FileText className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="text-white text-lg font-medium mb-2">No files uploaded yet</h3>
-                    <p className="text-purple-200 mb-4">Upload your first research paper to get started</p>
+                    <h3 className="text-white text-lg font-medium mb-2">ยังไม่มีไฟล์ที่อัปโหลด</h3>
+                    <p className="text-purple-200 mb-4">อัปโหลดเอกสารวิจัยของคุณเพื่อเริ่มต้นใช้งาน</p>
                     <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
                       <Link href="/summarize">
                         <Upload className="mr-2 h-4 w-4" />
-                        Upload Paper
+                        อัปโหลดเอกสาร
                       </Link>
                     </Button>
                   </div>
@@ -488,11 +602,11 @@ export default function DashboardPage() {
                 {uploadedFiles.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-white/10">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-white font-medium">Bulk Actions</h4>
+                      <h4 className="text-white font-medium">การดำเนินการแบบกลุ่ม</h4>
                       <DownloadArchive fileIds={selectedFiles} />
                     </div>
                     <p className="text-purple-200 text-sm">
-                      Select files to download as archive
+                      เลือกไฟล์เพื่อดาวน์โหลดเป็นไฟล์เก็บถาวร
                     </p>
                   </div>
                 )}
@@ -550,7 +664,7 @@ export default function DashboardPage() {
                 {isLoadingProgress ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
-                    <p className="text-purple-200 mt-2">Loading research progress...</p>
+                    <p className="text-purple-200 mt-2">กำลังโหลดความคืบหน้างานวิจัย...</p>
                   </div>
                 ) : researchProgress.length > 0 ? (
                   researchProgress.map((project) => (
@@ -582,12 +696,12 @@ export default function DashboardPage() {
                               </div>
                               <div className="flex items-center">
                                 <Activity className="mr-1 h-4 w-4" />
-                                {project.team.length} team members
+                                สมาชิกทีม {project.team.length} คน
                               </div>
                             </div>
                             <div className="mb-3">
                               <div className="flex items-center justify-between text-sm text-purple-200 mb-1">
-                                <span>Progress</span>
+                                <span>ความคืบหน้า</span>
                                 <span>{project.progress}%</span>
                               </div>
                               <div className="w-full bg-gray-700 rounded-full h-2">
@@ -612,7 +726,7 @@ export default function DashboardPage() {
                               className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 bg-transparent"
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View Details
+                              ดูรายละเอียด
                             </Button>
                             <Button
                               variant="outline"
@@ -620,7 +734,7 @@ export default function DashboardPage() {
                               className="border-green-400/50 text-green-200 hover:bg-green-500/20 bg-transparent"
                             >
                               <MessageSquare className="h-4 w-4 mr-1" />
-                              Chat
+                              แชท
                             </Button>
                           </div>
                         </div>
@@ -632,11 +746,11 @@ export default function DashboardPage() {
                     <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Activity className="h-8 w-8 text-purple-300" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">No Research Projects</h3>
-                    <p className="text-purple-200 mb-4">Start tracking your research progress and team collaboration</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">ไม่มีโปรเจกต์วิจัย</h3>
+                    <p className="text-purple-200 mb-4">เริ่มติดตามความคืบหน้างานวิจัยและการทำงานร่วมกันของทีม</p>
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add New Project
+                      เพิ่มโปรเจกต์ใหม่
                     </Button>
                   </div>
                 )}

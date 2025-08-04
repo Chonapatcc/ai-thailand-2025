@@ -49,15 +49,16 @@ def main():
             print(f"Error: Invalid PDF data format - {str(e)}")
             sys.exit(1)
         
-        # Create a comprehensive prompt for PDF analysis
+        # Create a comprehensive Thai prompt for PDF analysis
         pdf_prompt = f"""
-Please analyze this PDF document and answer the following question: {question}
+กรุณาวิเคราะห์เอกสาร PDF นี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the PDF content and answer the question comprehensively.
-If the PDF contains text, please extract and analyze the text content.
-If the PDF contains images, please describe and analyze the visual content.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาใน PDF และตอบคำถามอย่างครบถ้วน
+หาก PDF มีข้อความ กรุณาสรุปและวิเคราะห์เนื้อหาข้อความนั้น
+หาก PDF มีภาพ กรุณาอธิบายและวิเคราะห์เนื้อหาภาพ
+หากเป็นเอกสารวิจัยหรือทางวิชาการ กรุณาให้คำอธิบายที่ชัดเจนและสรุปประเด็นสำคัญ
 """
         
         # Call the Python textqa function with PDF context

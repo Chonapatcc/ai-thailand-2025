@@ -38,22 +38,24 @@ class AIFTIntegrated:
             # Get the extracted text
             text_content = pdf_result.get("text_content", "")
             
-            # Create comprehensive prompt
+            # Create comprehensive Thai prompt
             prompt = f"""
-Please analyze this PDF document and answer the following question: {question}
+กรุณาวิเคราะห์เอกสาร PDF นี้และตอบคำถามต่อไปนี้: {question}
 
-PDF Content:
+เนื้อหา PDF:
 {text_content}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the PDF content and answer the question comprehensively.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาใน PDF และตอบคำถามอย่างครบถ้วน
+หากเป็นเอกสารวิจัยหรือทางวิชาการ กรุณาให้คำอธิบายที่ชัดเจนและสรุปประเด็นสำคัญ
+โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย
 """
             
             # Call AIFT for analysis - use generate for direct model response
             result = textqa.generate(
                 instruction=prompt,
-                system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+                system_prompt="คุณคือ Pathumma LLM ที่สร้างโดย NECTEC คุณเป็นผู้ช่วยที่เป็นประโยชน์ โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย",
                 max_new_tokens=512,
                 temperature=temperature,
                 return_json=return_json
@@ -88,19 +90,23 @@ Please provide a detailed analysis of the PDF content and answer the question co
             if not image_result.get("success"):
                 return image_result
             
-            # Create comprehensive prompt for image analysis
+            # Create comprehensive Thai prompt for image analysis
             prompt = f"""
-Please analyze this image and answer the following question: {question}
+กรุณาวิเคราะห์ภาพนี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the image content and answer the question comprehensively.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาในภาพและตอบคำถามอย่างครบถ้วน
+หากภาพมีข้อความ กรุณาอ่านและแปลข้อความนั้น
+หากภาพมีวัตถุหรือสถานการณ์ กรุณาอธิบายรายละเอียด
+หากเป็นภาพที่เกี่ยวข้องกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจน
+โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย
 """
             
             # Call AIFT for analysis - use generate for direct model response
             result = textqa.generate(
                 instruction=prompt,
-                system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+                system_prompt="คุณคือ Pathumma LLM ที่สร้างโดย NECTEC คุณเป็นผู้ช่วยที่เป็นประโยชน์ โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย",
                 max_new_tokens=512,
                 temperature=temperature,
                 return_json=return_json
@@ -134,20 +140,23 @@ Please provide a detailed analysis of the image content and answer the question 
             if not audio_result.get("success"):
                 return audio_result
             
-            # Create comprehensive prompt for audio analysis
+            # Create comprehensive Thai prompt for audio analysis
             prompt = f"""
-Please analyze this audio content and answer the following question: {question}
+กรุณาวิเคราะห์เนื้อหาออดิโอนี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the audio content and answer the question comprehensively.
-If the audio contains speech, please transcribe and analyze the spoken content.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาในออดิโอและตอบคำถามอย่างครบถ้วน
+หากออดิโอมีเสียงพูด กรุณาแปลและวิเคราะห์เนื้อหาที่พูด
+หากเป็นเสียงเพลงหรือเสียงธรรมชาติ กรุณาอธิบายรายละเอียด
+หากเป็นเสียงที่เกี่ยวข้องกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจน
+โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย
 """
             
             # Call AIFT for analysis - use generate for direct model response
             result = textqa.generate(
                 instruction=prompt,
-                system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+                system_prompt="คุณคือ Pathumma LLM ที่สร้างโดย NECTEC คุณเป็นผู้ช่วยที่เป็นประโยชน์ โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย",
                 max_new_tokens=512,
                 temperature=temperature,
                 return_json=return_json
@@ -175,10 +184,21 @@ If the audio contains speech, please transcribe and analyze the spoken content.
     def chat(self, message, sessionid='default-session', context='', temperature=0.2, return_json=False):
         """Regular chat with AIFT using textqa"""
         try:
+            # Create Thai language prompt for chat
+            thai_prompt = f"""
+กรุณาตอบคำถามหรือช่วยเหลือในเรื่องต่อไปนี้: {message}
+
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
+
+โปรดตอบคำถามหรือให้คำแนะนำที่เป็นประโยชน์และครบถ้วน โดยใช้ภาษาไทยที่เข้าใจง่ายและเป็นธรรมชาติ
+หากเป็นคำถามเกี่ยวกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจนและมีตัวอย่างประกอบ
+โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย
+"""
+            
             # Use textqa for chat functionality
             result = textqa.generate(
-                instruction=message,
-                system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+                instruction=thai_prompt,
+                system_prompt="คุณคือ Pathumma LLM ที่สร้างโดย NECTEC คุณเป็นผู้ช่วยที่เป็นประโยชน์ โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย",
                 max_new_tokens=512,
                 temperature=temperature,
                 return_json=return_json

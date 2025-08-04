@@ -33,9 +33,19 @@ def main():
         temperature = float(sys.argv[4]) if len(sys.argv) > 4 else 0.2
         return_json = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else False
         
-        # Call the Python textqa function for chat
+        # Create Thai language prompt
+        thai_prompt = f"""
+กรุณาตอบคำถามหรือช่วยเหลือในเรื่องต่อไปนี้: {message}
+
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
+
+โปรดตอบคำถามหรือให้คำแนะนำที่เป็นประโยชน์และครบถ้วน โดยใช้ภาษาไทยที่เข้าใจง่ายและเป็นธรรมชาติ
+หากเป็นคำถามเกี่ยวกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจนและมีตัวอย่างประกอบ
+"""
+        
+        # Call the Python textqa function for chat with Thai prompt
         result = textqa.chat(
-            message, 
+            thai_prompt, 
             sessionid=sessionid, 
             context=context, 
             temperature=temperature, 

@@ -47,65 +47,81 @@ export async function POST(request: NextRequest) {
       return messageError
     }
 
-    // Validate PDF file specifically
-    if (!validatePDFFile(file)) {
-      return ApiErrorHandler.handleValidationError('file', 'Invalid PDF file')
-    }
-
     const sanitizedMessage = ValidationUtils.sanitizeString(message)
     const sanitizedSourceUrl = sourceUrl ? ValidationUtils.sanitizeString(sourceUrl) : undefined
 
-    // Extract text and metadata from PDF
-    let pdfContent
-    try {
-      pdfContent = await extractTextFromPDF(file)
-    } catch (error) {
-      ApiErrorHandler.logError(error, 'PDF text extraction failed')
-      return ApiErrorHandler.handleFileError('extract PDF text', error)
-    }
+    // Process file based on type
+    let fileContent = ''
+    let summary = ''
+    let metadata = {}
+    let headers: string[] = []
 
-    // Check if content is empty
-    if (!pdfContent.text || pdfContent.text.trim().length === 0) {
-      return ApiErrorHandler.handleValidationError('file', 'PDF appears to be empty or contains no extractable text')
-    }
+    // Check if it's a PDF file
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      // Validate PDF file specifically
+      if (!validatePDFFile(file)) {
+        return ApiErrorHandler.handleValidationError('file', 'Invalid PDF file')
+      }
 
-    // Generate AI summary
-    let summary: string
-    try {
-      summary = await generatePDFSummary(pdfContent, sanitizedMessage)
-    } catch (error) {
-      ApiErrorHandler.logError(error, 'Summary generation failed')
-      summary = 'Summary generation failed'
+      // Extract text and metadata from PDF
+      let pdfContent
+      try {
+        pdfContent = await extractTextFromPDF(file)
+        fileContent = pdfContent.text
+        metadata = pdfContent.metadata
+        headers = pdfContent.headers
+      } catch (error) {
+        ApiErrorHandler.logError(error, 'PDF text extraction failed')
+        return ApiErrorHandler.handleFileError('extract PDF text', error)
+      }
+
+      // Check if content is empty
+      if (!fileContent || fileContent.trim().length === 0) {
+        return ApiErrorHandler.handleValidationError('file', 'PDF appears to be empty or contains no extractable text')
+      }
+
+      // Generate AI summary for PDFs
+      try {
+        summary = await generatePDFSummary(pdfContent, sanitizedMessage)
+      } catch (error) {
+        ApiErrorHandler.logError(error, 'Summary generation failed')
+        summary = 'Summary generation failed'
+      }
+    } else {
+      // For non-PDF files, use filename as content and generate basic summary
+      fileContent = `File: ${file.name}\nType: ${file.type}\nSize: ${file.size} bytes`
+      summary = `Uploaded ${file.name} (${file.type})`
+      metadata = {
+        title: file.name,
+        author: 'Unknown',
+        pageCount: 1
+      }
     }
 
     // Save file to storage
     let savedFile
     try {
-      savedFile = await fileStorage.saveFile(file, {
-        message: sanitizedMessage,
-        sourceUrl: sanitizedSourceUrl,
-        summary,
-        headers: pdfContent.headers,
-        metadata: pdfContent.metadata
-      })
+      savedFile = await fileStorage.saveFile(file, fileContent, summary, sanitizedSourceUrl)
     } catch (error) {
       ApiErrorHandler.logError(error, 'File storage failed')
       return ApiErrorHandler.handleFileError('save file', error)
     }
 
-    // Store in vector database
-    try {
-      await vectorDB.addDocument(savedFile.id, pdfContent.text, {
-        filename: savedFile.originalName,
-        uploadDate: savedFile.uploadDate,
-        tags: savedFile.tags || [],
-        summary,
-        sourceUrl: sanitizedSourceUrl,
-        headers: pdfContent.headers
-      })
-    } catch (error) {
-      ApiErrorHandler.logError(error, 'Vector database storage failed')
-      // Continue without vector storage - file is still saved
+    // Store in vector database (only for PDFs with text content)
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        await vectorDB.addDocument(savedFile.id, fileContent, {
+          filename: savedFile.originalName,
+          uploadDate: savedFile.uploadDate,
+          tags: savedFile.tags || [],
+          summary,
+          sourceUrl: sanitizedSourceUrl,
+          headers
+        })
+      } catch (error) {
+        ApiErrorHandler.logError(error, 'Vector database storage failed')
+        // Continue without vector storage - file is still saved
+      }
     }
 
     const response = NextResponse.json({
@@ -116,9 +132,12 @@ export async function POST(request: NextRequest) {
         size: savedFile.size,
         uploadDate: savedFile.uploadDate,
         summary,
-        headers: pdfContent.headers,
-        metadata: pdfContent.metadata,
-        tags: savedFile.tags
+        headers,
+        metadata,
+        tags: savedFile.tags,
+        fileType: savedFile.fileType,
+        frontendPath: savedFile.frontendPath,
+        backendPath: savedFile.backendPath
       },
       message: 'File uploaded and processed successfully'
     })

@@ -33,10 +33,20 @@ def main():
         temperature = float(sys.argv[4]) if len(sys.argv) > 4 else 0.2
         return_json = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else False
         
+        # Create Thai language prompt
+        thai_prompt = f"""
+กรุณาตอบคำถามหรือช่วยเหลือในเรื่องต่อไปนี้: {question}
+
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
+
+โปรดตอบคำถามหรือให้คำแนะนำที่เป็นประโยชน์และครบถ้วน โดยใช้ภาษาไทยที่เข้าใจง่ายและเป็นธรรมชาติ
+หากเป็นคำถามเกี่ยวกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจนและมีตัวอย่างประกอบ
+"""
+        
         # Call the Python textqa function - use generate for direct model response
         result = textqa.generate(
-            instruction=question,
-            system_prompt="You are Pathumma LLM, created by NECTEC. You are a helpful assistant.",
+            instruction=thai_prompt,
+            system_prompt="คุณคือ Pathumma LLM ที่สร้างโดย NECTEC คุณเป็นผู้ช่วยที่เป็นประโยชน์ โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย",
             max_new_tokens=512,
             temperature=temperature,
             return_json=return_json

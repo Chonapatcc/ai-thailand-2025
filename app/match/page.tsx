@@ -31,7 +31,7 @@ export default function MatchPage() {
   const [matchedPapers, setMatchedPapers] = useState<MatchedPaper[]>([])
   const [expandedPaper, setExpandedPaper] = useState<number | null>(null)
 
-  // Mock data
+  // Mock data with more papers
   const mockPapers: MatchedPaper[] = [
     {
       id: 1,
@@ -74,6 +74,90 @@ export default function MatchPage() {
       abstract:
         "Recent work has demonstrated substantial gains on many NLP tasks and benchmarks by pre-training on a large corpus of text followed by fine-tuning on a specific task. While typically task-agnostic in architecture, this method still requires task-specific fine-tuning datasets of thousands or tens of thousands of examples.",
     },
+    {
+      id: 4,
+      title: "ResNet: Deep Residual Learning for Image Recognition",
+      authors: ["Kaiming He", "Xiangyu Zhang", "Shaoqing Ren"],
+      year: 2016,
+      venue: "CVPR",
+      topics: ["Computer Vision", "ResNet", "Deep Learning", "Image Recognition"],
+      summary: "Introduces residual connections that enable training of very deep neural networks for image recognition.",
+      relevanceScore: 85,
+      link: "https://arxiv.org/abs/1512.03385",
+      abstract: "Deeper neural networks are more difficult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously.",
+    },
+    {
+      id: 5,
+      title: "YOLO: You Only Look Once",
+      authors: ["Joseph Redmon", "Santosh Divvala", "Ross Girshick"],
+      year: 2016,
+      venue: "CVPR",
+      topics: ["Object Detection", "YOLO", "Computer Vision", "Real-time"],
+      summary: "Presents a unified approach to object detection that is fast and accurate.",
+      relevanceScore: 82,
+      link: "https://arxiv.org/abs/1506.02640",
+      abstract: "We present YOLO, a new approach to object detection. Prior work on object detection repurposes classifiers to perform detection.",
+    },
+    {
+      id: 6,
+      title: "AlphaGo: Mastering the Game of Go",
+      authors: ["David Silver", "Aja Huang", "Chris Maddison"],
+      year: 2016,
+      venue: "Nature",
+      topics: ["Reinforcement Learning", "AlphaGo", "Game AI", "Deep Learning"],
+      summary: "Demonstrates that deep neural networks combined with reinforcement learning can master complex games.",
+      relevanceScore: 90,
+      link: "https://www.nature.com/articles/nature16961",
+      abstract: "The game of Go has long been viewed as the most challenging of classic games for artificial intelligence owing to its enormous search space and the difficulty of evaluating board positions and moves.",
+    },
+    {
+      id: 7,
+      title: "StyleGAN: A Style-Based Generator Architecture",
+      authors: ["Tero Karras", "Samuli Laine", "Timo Aila"],
+      year: 2019,
+      venue: "CVPR",
+      topics: ["GAN", "StyleGAN", "Image Generation", "Computer Vision"],
+      summary: "Introduces a new generator architecture for GANs that leads to better quality and controllability.",
+      relevanceScore: 87,
+      link: "https://arxiv.org/abs/1812.04948",
+      abstract: "We propose an alternative generator architecture for generative adversarial networks, borrowing from style transfer literature.",
+    },
+    {
+      id: 8,
+      title: "Vision Transformer (ViT)",
+      authors: ["Alexey Dosovitskiy", "Lucas Beyer", "Alexander Kolesnikov"],
+      year: 2021,
+      venue: "ICLR",
+      topics: ["Vision Transformer", "Computer Vision", "Transformers", "Image Classification"],
+      summary: "Applies transformer architecture to image classification, showing that pure attention can work well for computer vision.",
+      relevanceScore: 89,
+      link: "https://arxiv.org/abs/2010.11929",
+      abstract: "While the Transformer architecture has become the de-facto standard for natural language processing tasks, its applications to computer vision remain limited.",
+    },
+    {
+      id: 9,
+      title: "CLIP: Learning Transferable Visual Representations",
+      authors: ["Alec Radford", "Jong Wook Kim", "Chris Hallacy"],
+      year: 2021,
+      venue: "ICML",
+      topics: ["CLIP", "Multimodal", "Computer Vision", "NLP"],
+      summary: "Learns visual representations from natural language supervision, enabling zero-shot image classification.",
+      relevanceScore: 86,
+      link: "https://arxiv.org/abs/2103.00020",
+      abstract: "State-of-the-art computer vision systems are trained to predict a fixed set of predetermined object categories.",
+    },
+    {
+      id: 10,
+      title: "DALL-E: Zero-Shot Text-to-Image Generation",
+      authors: ["Aditya Ramesh", "Mikhail Pavlov", "Gabriel Goh"],
+      year: 2021,
+      venue: "ICML",
+      topics: ["DALL-E", "Text-to-Image", "Multimodal", "Generation"],
+      summary: "Creates images from text descriptions using a transformer-based architecture.",
+      relevanceScore: 84,
+      link: "https://arxiv.org/abs/2102.12092",
+      abstract: "We present a simple method for training conditional language models to generate images from text descriptions.",
+    }
   ]
 
   const handleSearch = async () => {
@@ -144,9 +228,14 @@ export default function MatchPage() {
         results = mockPapers.filter(paper => 
           paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           paper.topics.some(topic => topic.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          paper.summary.toLowerCase().includes(searchQuery.toLowerCase())
+          paper.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          paper.abstract.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          paper.authors.some(author => author.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       }
+      
+      // Sort results by relevance score (highest first)
+      results.sort((a, b) => b.relevanceScore - a.relevanceScore)
 
       setMatchedPapers(results)
     } catch (error) {
@@ -175,22 +264,22 @@ export default function MatchPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Research Paper Matching</h2>
-            <p className="text-purple-200">Find related papers based on your research interests or abstract</p>
+            <h2 className="text-3xl font-bold text-white mb-2">การค้นหางานวิจัยที่เกี่ยวข้อง</h2>
+            <p className="text-purple-200">ค้นหางานวิจัยที่เกี่ยวข้องตามความสนใจหรือบทคัดย่อของคุณ</p>
           </div>
 
           {/* Search Section */}
           <Card className="mb-8 bg-white/5 backdrop-blur-md border-white/10">
             <CardHeader>
-              <CardTitle className="text-white">Describe Your Research</CardTitle>
-              <CardDescription className="text-purple-200">Enter your research topic, abstract, or keywords to find related papers</CardDescription>
+              <CardTitle className="text-white">อธิบายงานวิจัยของคุณ</CardTitle>
+              <CardDescription className="text-purple-200">ป้อนหัวข้องานวิจัย บทคัดย่อ หรือคำสำคัญเพื่อค้นหางานวิจัยที่เกี่ยวข้อง</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="research-query">Research Description</Label>
+                <Label htmlFor="research-query">คำอธิบายงานวิจัย</Label>
                 <Textarea
                   id="research-query"
-                  placeholder="Enter your research topic, abstract, or specific questions you're investigating..."
+                  placeholder="ป้อนหัวข้องานวิจัย บทคัดย่อ หรือคำถามเฉพาะที่คุณกำลังศึกษา..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   rows={4}
@@ -206,12 +295,12 @@ export default function MatchPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Finding Papers...
+                      กำลังค้นหา...
                     </>
                   ) : (
                     <>
                       <Search className="mr-2 h-4 w-4" />
-                      Find Related Papers
+                      ค้นหางานวิจัยที่เกี่ยวข้อง
                     </>
                   )}
                 </Button>
@@ -223,10 +312,10 @@ export default function MatchPage() {
           {matchedPapers.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-white">Found {matchedPapers.length} Related Papers</h3>
+                <h3 className="text-xl font-semibold text-white">พบงานวิจัยที่เกี่ยวข้อง {matchedPapers.length} เรื่อง</h3>
                 <Button variant="outline" size="sm" className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filter Results
+                  กรองผลลัพธ์
                 </Button>
               </div>
 
@@ -268,19 +357,19 @@ export default function MatchPage() {
                           <Button variant="outline" size="sm" asChild>
                             <a href={paper.link} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="h-4 w-4 mr-1" />
-                              View Paper
+                              ดูงานวิจัย
                             </a>
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => toggleExpanded(paper.id)}>
                             {expandedPaper === paper.id ? (
                               <>
                                 <ChevronUp className="h-4 w-4 mr-1" />
-                                Less
+                                น้อยลง
                               </>
                             ) : (
                               <>
                                 <ChevronDown className="h-4 w-4 mr-1" />
-                                More
+                                เพิ่มเติม
                               </>
                             )}
                           </Button>
@@ -298,8 +387,8 @@ export default function MatchPage() {
 
                       {expandedPaper === paper.id && (
                         <div className="pt-4 border-t">
-                          <h4 className="font-medium text-gray-900 mb-2">Abstract</h4>
-                          <p className="text-gray-700 text-sm leading-relaxed">{paper.abstract}</p>
+                          <h4 className="font-medium text-white mb-2">บทคัดย่อ</h4>
+                          <p className="text-purple-200 text-sm leading-relaxed">{paper.abstract}</p>
                         </div>
                       )}
                     </CardContent>
@@ -310,13 +399,13 @@ export default function MatchPage() {
               {/* Action Buttons */}
               <div className="flex justify-center space-x-4 pt-6">
                 <Button variant="outline" onClick={() => setMatchedPapers([])}>
-                  New Search
+                  ค้นหาใหม่
                 </Button>
                 <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                  <Link href="/chat">Discuss with AI</Link>
+                  <Link href="/chat">สนทนากับ AI</Link>
                 </Button>
                 <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                  <Link href="/summarize">Upload & Summarize</Link>
+                  <Link href="/summarize">อัปโหลดและสรุป</Link>
                 </Button>
               </div>
             </div>

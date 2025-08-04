@@ -14,6 +14,31 @@ export interface StoredFile {
   tags: string[]
   summary?: string
   sourceUrl?: string
+  fileType: string
+  frontendPath: string
+  backendPath: string
+  metadata?: {
+    title?: string
+    author?: string
+    subject?: string
+    pageCount?: number
+    keywords?: string[]
+    creationDate?: Date
+    modificationDate?: Date
+    producer?: string
+    creator?: string
+    analysis?: {
+      summary: string
+      sections: {
+        methodology?: string
+        results?: string
+        findings?: string
+        limitations?: string
+      }
+      keyPoints: string[]
+      confidence: number
+    }
+  }
 }
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
@@ -87,20 +112,34 @@ export class FileStorage {
     try {
       const id = this.generateId()
       const filename = `${id}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-      const filePath = path.join(UPLOAD_DIR, filename)
-
+      
+      // Determine file type and organize into proper directories
+      const fileType = this.getFileType(file)
+      const frontendDir = path.join(UPLOAD_DIR, 'frontend', fileType)
+      const backendDir = path.join(UPLOAD_DIR, 'backend', fileType)
+      
+      // Create directories if they don't exist
+      fs.mkdirSync(frontendDir, { recursive: true })
+      fs.mkdirSync(backendDir, { recursive: true })
+      
+      // Save to both frontend and backend directories
+      const frontendPath = path.join(frontendDir, filename)
+      const backendPath = path.join(backendDir, filename)
+      
       // Check if file already exists
-      if (fs.existsSync(filePath)) {
+      if (fs.existsSync(frontendPath) || fs.existsSync(backendPath)) {
         throw new Error('File with this name already exists')
       }
 
-      // Save file content
+      // Save file content to both locations
       const buffer = Buffer.from(await file.arrayBuffer())
-      fs.writeFileSync(filePath, buffer)
+      fs.writeFileSync(frontendPath, buffer)
+      fs.writeFileSync(backendPath, buffer)
 
       // Extract tags from filename and content
       const tags = this.extractTags(file.name, content)
 
+      // Create stored file object
       const storedFile: StoredFile = {
         id,
         filename,
@@ -110,7 +149,47 @@ export class FileStorage {
         content,
         tags,
         summary,
-        sourceUrl
+        sourceUrl,
+        fileType,
+        frontendPath: path.relative(UPLOAD_DIR, frontendPath),
+        backendPath: path.relative(UPLOAD_DIR, backendPath)
+      }
+
+      // Add metadata if it's a PDF file
+      if (fileType === 'pdf' && file instanceof Blob) {
+        try {
+          const { extractTextFromPDF, generatePDFSummary } = require('./pdf-utils')
+          const pdfContent = await extractTextFromPDF(file)
+          const pdfAnalysis = await generatePDFSummary(pdfContent)
+          
+          storedFile.metadata = {
+            title: pdfContent.metadata.title,
+            author: pdfContent.metadata.author,
+            subject: pdfContent.metadata.subject,
+            pageCount: pdfContent.metadata.pageCount,
+            keywords: pdfContent.metadata.keywords,
+            creationDate: pdfContent.metadata.creationDate,
+            modificationDate: pdfContent.metadata.modificationDate,
+            analysis: {
+              summary: pdfAnalysis.summary,
+              sections: pdfAnalysis.sections,
+              keyPoints: pdfAnalysis.keyPoints,
+              confidence: pdfAnalysis.confidence
+            }
+          }
+
+          // Add analysis tags to file tags
+          if (pdfAnalysis.tags && pdfAnalysis.tags.length > 0) {
+            storedFile.tags = [...new Set([...storedFile.tags, ...pdfAnalysis.tags])]
+          }
+
+          // Add any keywords from PDF metadata to tags
+          if (pdfContent.metadata.keywords) {
+            storedFile.tags = [...new Set([...tags, ...pdfContent.metadata.keywords])]
+          }
+        } catch (error) {
+          console.warn('Could not extract PDF metadata:', error)
+        }
       }
 
       this.metadata.push(storedFile)
@@ -180,11 +259,15 @@ export class FileStorage {
       if (fileIndex === -1) return false
 
       const file = this.metadata[fileIndex]
-      const filePath = path.join(UPLOAD_DIR, file.filename)
+      const frontendPath = path.join(UPLOAD_DIR, file.frontendPath)
+      const backendPath = path.join(UPLOAD_DIR, file.backendPath)
 
-      // Delete physical file
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
+      // Delete physical files
+      if (fs.existsSync(frontendPath)) {
+        fs.unlinkSync(frontendPath)
+      }
+      if (fs.existsSync(backendPath)) {
+        fs.unlinkSync(backendPath)
       }
 
       // Remove from metadata
@@ -299,6 +382,34 @@ export class FileStorage {
       ApiErrorHandler.logError(error, 'Error extracting tags')
       return []
     }
+  }
+
+  private getFileType(file: File): string {
+    const fileName = file.name.toLowerCase()
+    const fileType = file.type.toLowerCase()
+    
+    // Check for images
+    if (fileType.startsWith('image/') || /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/.test(fileName)) {
+      return 'images'
+    }
+    
+    // Check for PDFs
+    if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+      return 'pdf'
+    }
+    
+    // Check for audio files
+    if (fileType.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/.test(fileName)) {
+      return 'audio'
+    }
+    
+    // Check for text files
+    if (fileType.startsWith('text/') || /\.(txt|md|json|xml|html|css|js|ts)$/.test(fileName)) {
+      return 'text'
+    }
+    
+    // Default to text for unknown types
+    return 'text'
   }
 }
 

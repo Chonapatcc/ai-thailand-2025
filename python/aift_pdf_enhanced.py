@@ -67,26 +67,27 @@ def main():
         text_content = pdf_result.get("text_content", "")
         
         if not text_content.strip():
-            # If no text extracted, use a generic prompt
+            # If no text extracted, use a generic Thai prompt
             pdf_prompt = f"""
-Please analyze this PDF document and answer the following question: {question}
+กรุณาวิเคราะห์เอกสาร PDF นี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-This appears to be a PDF document that may contain images or scanned content. 
-Please provide a general analysis based on the document structure and any available information.
+เอกสาร PDF นี้ดูเหมือนจะมีภาพหรือเนื้อหาที่สแกนไว้
+โปรดให้การวิเคราะห์ทั่วไปตามโครงสร้างเอกสารและข้อมูลที่มีอยู่
 """
         else:
-            # Use extracted text for analysis
+            # Use extracted text for analysis with Thai prompt
             pdf_prompt = f"""
-Please analyze this PDF document and answer the following question: {question}
+กรุณาวิเคราะห์เอกสาร PDF นี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Extracted text from the PDF:
+ข้อความที่สกัดจาก PDF:
 {text_content}
 
-Please provide a detailed analysis of the PDF content and answer the question comprehensively.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาใน PDF และตอบคำถามอย่างครบถ้วน
+หากเป็นเอกสารวิจัยหรือทางวิชาการ กรุณาให้คำอธิบายที่ชัดเจนและสรุปประเด็นสำคัญ
 """
         
         # Call the AIFT chat function with PDF context

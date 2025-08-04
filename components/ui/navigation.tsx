@@ -10,10 +10,10 @@ interface NavigationProps {
 
 export function Navigation({ className = "" }: NavigationProps) {
   const navigationItems = [
-    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-    { href: "/summarize", label: "Analyze", icon: FileText },
-    { href: "/match", label: "Discover", icon: Search },
-    { href: "/chat", label: "AI Chat", icon: MessageSquare },
+    { href: "/dashboard", label: "แดชบอร์ด", icon: BarChart3 },
+    { href: "/summarize", label: "วิเคราะห์", icon: FileText },
+    { href: "/match", label: "ค้นพบ", icon: Search },
+    { href: "/chat", label: "แชท AI", icon: MessageSquare },
   ]
 
   return (
@@ -29,7 +29,7 @@ export function Navigation({ className = "" }: NavigationProps) {
           <div>
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                AnomyResearch
+                ThaiJoy
               </h1>
               <p className="text-xs text-purple-200">AI & Tech Research Intelligence</p>
             </Link>
@@ -58,7 +58,7 @@ export function Navigation({ className = "" }: NavigationProps) {
         >
           <Link href="/dashboard">
             <Sparkles className="mr-2 h-4 w-4" />
-            Start Research
+            เริ่มวิจัย
           </Link>
         </Button>
       </div>

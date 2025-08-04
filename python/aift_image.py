@@ -50,13 +50,16 @@ def main():
             print(f"Error: Invalid image data format - {str(e)}")
             sys.exit(1)
         
-        # Create a comprehensive prompt for image analysis
+        # Create a comprehensive Thai prompt for image analysis
         image_prompt = f"""
-Please analyze this image and answer the following question: {question}
+กรุณาวิเคราะห์ภาพนี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the image content and answer the question comprehensively.
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาในภาพและตอบคำถามอย่างครบถ้วน
+หากภาพมีข้อความ กรุณาอ่านและแปลข้อความนั้น
+หากภาพมีวัตถุหรือสถานการณ์ กรุณาอธิบายรายละเอียด
+หากเป็นภาพที่เกี่ยวข้องกับ AI หรือเทคโนโลยี กรุณาให้คำอธิบายที่ชัดเจน
 """
         
         # Call the Python textqa function with image context

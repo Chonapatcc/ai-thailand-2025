@@ -24,7 +24,7 @@ export default function ChatPage() {
       id: 1,
       type: "assistant",
       content:
-        "Hello! I'm your AI research assistant. I can help you understand research papers, find connections between studies, and answer questions about your uploaded documents. How can I assist you today?",
+        "สวัสดี! ฉันเป็นผู้ช่วยวิจัย AI ของคุณ ฉันสามารถช่วยคุณเข้าใจงานวิจัย ค้นหาความเชื่อมโยงระหว่างการศึกษา และตอบคำถามเกี่ยวกับเอกสารที่คุณอัปโหลด คุณต้องการให้ฉันช่วยอะไรในวันนี้?",
       timestamp: new Date(),
     },
   ])
@@ -44,23 +44,23 @@ export default function ChatPage() {
 
   const quickActions: QuickAction[] = [
     {
-      label: "Summarize key findings",
-      prompt: "Can you summarize the key findings from the attached papers?",
+      label: "สรุปผลการวิจัยหลัก",
+      prompt: "คุณสามารถสรุปผลการวิจัยหลักจากเอกสารที่แนบได้หรือไม่?",
       icon: FileText,
     },
     {
-      label: "Compare methodologies",
-      prompt: "How do the methodologies in these papers compare?",
+      label: "เปรียบเทียบวิธีการ",
+      prompt: "วิธีการในเอกสารเหล่านี้เปรียบเทียบกันอย่างไร?",
       icon: Search,
     },
     {
-      label: "Identify research gaps",
-      prompt: "What research gaps can you identify from these studies?",
+      label: "ระบุช่องว่างการวิจัย",
+      prompt: "คุณสามารถระบุช่องว่างการวิจัยจากงานศึกษาเหล่านี้ได้หรือไม่?",
       icon: Lightbulb,
     },
     {
-      label: "Suggest future work",
-      prompt: "Based on these papers, what future research directions would you suggest?",
+      label: "แนะนำงานในอนาคต",
+      prompt: "จากเอกสารเหล่านี้ คุณจะแนะนำทิศทางการวิจัยในอนาคตอย่างไร?",
       icon: BookOpen,
     },
   ]
@@ -361,7 +361,7 @@ export default function ChatPage() {
           <div className="lg:col-span-1 space-y-4">
             <Card className="bg-white/5 backdrop-blur-md border-white/10">
               <CardHeader>
-                <CardTitle className="text-lg text-white">Context Papers</CardTitle>
+                <CardTitle className="text-lg text-white">เอกสารบริบท</CardTitle>
               </CardHeader>
               <CardContent>
                 {attachedPapers.length > 0 ? (
@@ -377,7 +377,7 @@ export default function ChatPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-purple-300">
-                    No papers added to context yet. Add papers to get more specific insights.
+                    ยังไม่มีเอกสารเพิ่มในบริบท เพิ่มเอกสารเพื่อรับข้อมูลเชิงลึกที่เฉพาะเจาะจงมากขึ้น
                   </p>
                 )}
                 
@@ -387,14 +387,14 @@ export default function ChatPage() {
                   size="sm"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Context Paper
+                  เพิ่มเอกสารบริบท
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="bg-white/5 backdrop-blur-md border-white/10">
               <CardHeader>
-                <CardTitle className="text-lg text-white">Quick Actions</CardTitle>
+                <CardTitle className="text-lg text-white">การดำเนินการด่วน</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -424,7 +424,7 @@ export default function ChatPage() {
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
                   <Bot className="mr-2 h-5 w-5 text-purple-400" />
-                  AI Research Assistant
+                  ผู้ช่วยวิจัย AI
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-0">
@@ -465,7 +465,7 @@ export default function ChatPage() {
                           <div className="flex items-center space-x-2">
                             <Bot className="h-5 w-5 text-purple-400" />
                             <LoadingSpinner className="h-4 w-4" />
-                            <span className="text-sm text-purple-200">AI is analyzing...</span>
+                            <span className="text-sm text-purple-200">AI กำลังวิเคราะห์...</span>
                           </div>
                         </div>
                       </div>
@@ -554,7 +554,7 @@ export default function ChatPage() {
                   
                   <div className="flex space-x-2">
                     <Input
-                      placeholder="Ask about your research papers or upload a PDF..."
+                      placeholder="ถามเกี่ยวกับงานวิจัยของคุณหรืออัปโหลด PDF..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
@@ -636,7 +636,7 @@ export default function ChatPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-slate-800 border border-purple-400/30 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Select Context Paper</h3>
+              <h3 className="text-lg font-semibold text-white">เลือกเอกสารบริบท</h3>
               <Button
                 variant="ghost"
                 onClick={() => setShowContextPapers(false)}
@@ -666,7 +666,7 @@ export default function ChatPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-purple-300 text-center py-4">No papers available in database</p>
+                <p className="text-purple-300 text-center py-4">ไม่มีเอกสารในฐานข้อมูล</p>
               )}
             </div>
           </div>

@@ -139,70 +139,117 @@ export default function SummarizePage() {
 
   const generateRealSummary = async () => {
     try {
-      // Call AI API to generate real summary
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: 'Please analyze this research paper and provide a comprehensive summary with the following sections: Methodology, Results, Dataset, and Limitations. For each section, provide a title, content, and AI confidence score (0-100).',
-          context: [],
-          history: []
+      // Use the last analysis response if available
+      if ((window as any).lastAnalysisResponse) {
+        const aiResponse = (window as any).lastAnalysisResponse
+        
+        // Split the AI response into sections based on common headers
+        const sections = splitResponseIntoSections(aiResponse)
+        
+        // Create real summary sections based on AI analysis
+        const realSections: SummarySection[] = sections.map((section, index) => {
+          const sectionTypes = ["method", "result", "dataset", "weakness"]
+          const icons = [Atom, Activity, Database, AlertTriangle]
+          const gradients = [
+            "from-blue-500 to-purple-600",
+            "from-green-500 to-blue-600", 
+            "from-purple-500 to-pink-600",
+            "from-orange-500 to-red-600"
+          ]
+          const scores = [95, 92, 89, 87]
+          
+          return {
+            type: sectionTypes[index] as any,
+            title: section.title,
+            content: section.content,
+            icon: icons[index],
+            gradient: gradients[index],
+            aiScore: scores[index],
+          }
         })
-      })
-
-      if (!response.ok) {
-        throw new Error('AI analysis failed')
+        
+        setRealSummaryData(realSections)
+      } else {
+        // Fallback to mock data
+        setRealSummaryData(summaryData.en)
       }
-
-      const data = await response.json()
-      
-      // Parse AI response and create summary sections
-      const aiResponse = data.message
-      
-      // Create real summary sections based on AI analysis
-      const realSections: SummarySection[] = [
-        {
-          type: "method",
-          title: "Methodology",
-          content: aiResponse.includes('methodology') ? aiResponse.split('methodology')[1]?.split('results')[0] || aiResponse : aiResponse,
-          icon: Atom,
-          gradient: "from-blue-500 to-purple-600",
-          aiScore: 95,
-        },
-        {
-          type: "result",
-          title: "Results",
-          content: aiResponse.includes('results') ? aiResponse.split('results')[1]?.split('dataset')[0] || aiResponse : aiResponse,
-          icon: Activity,
-          gradient: "from-green-500 to-blue-600",
-          aiScore: 92,
-        },
-        {
-          type: "dataset",
-          title: "Dataset",
-          content: aiResponse.includes('dataset') ? aiResponse.split('dataset')[1]?.split('limitations')[0] || aiResponse : aiResponse,
-          icon: Database,
-          gradient: "from-purple-500 to-pink-600",
-          aiScore: 89,
-        },
-        {
-          type: "weakness",
-          title: "Limitations",
-          content: aiResponse.includes('limitations') ? aiResponse.split('limitations')[1] || aiResponse : aiResponse,
-          icon: AlertTriangle,
-          gradient: "from-orange-500 to-red-600",
-          aiScore: 87,
-        },
-      ]
-      
-      setRealSummaryData(realSections)
     } catch (error) {
       console.error('Error generating real summary:', error)
       // Fallback to mock data
       setRealSummaryData(summaryData.en)
     }
+  }
+
+  const splitResponseIntoSections = (response: string) => {
+    const sections = []
+    
+    // Common section headers in Thai and English
+    const headers = [
+      'methodology', 'method', 'methodology', 'method', 'methodology', 'method',
+      'results', 'result', 'findings', 'outcomes',
+      'dataset', 'data', 'experiments', 'materials',
+      'limitations', 'limitation', 'weakness', 'weaknesses', 'discussion', 'conclusion'
+    ]
+    
+    // Thai headers
+    const thaiHeaders = [
+      'วิธีการ', 'วิธี', 'methodology', 'method',
+      'ผลลัพธ์', 'ผล', 'findings', 'results',
+      'ข้อมูล', 'dataset', 'experiments', 'materials',
+      'ข้อจำกัด', 'limitations', 'discussion', 'conclusion'
+    ]
+    
+    let currentSection = { title: 'Methodology', content: '', type: 'method' }
+    let currentContent = ''
+    
+    const lines = response.split('\n')
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim()
+      
+      // Check if this line is a header
+      const isHeader = [...headers, ...thaiHeaders].some(header => 
+        trimmedLine.toLowerCase().includes(header.toLowerCase())
+      )
+      
+      if (isHeader && currentContent.trim()) {
+        // Save current section
+        currentSection.content = currentContent.trim()
+        sections.push({ ...currentSection })
+        
+        // Start new section
+        currentContent = ''
+        currentSection = { 
+          title: trimmedLine, 
+          content: '', 
+          type: sections.length === 0 ? 'method' : 
+                sections.length === 1 ? 'result' : 
+                sections.length === 2 ? 'dataset' : 'weakness'
+        }
+      } else {
+        currentContent += line + '\n'
+      }
+    }
+    
+    // Add the last section
+    if (currentContent.trim()) {
+      currentSection.content = currentContent.trim()
+      sections.push({ ...currentSection })
+    }
+    
+    // Ensure we have exactly 4 sections
+    while (sections.length < 4) {
+      sections.push({
+        title: `Section ${sections.length + 1}`,
+        content: 'No content available for this section.',
+        type: sections.length === 0 ? 'method' : 
+              sections.length === 1 ? 'result' : 
+              sections.length === 2 ? 'dataset' : 'weakness'
+      })
+    }
+    
+    // Limit to 4 sections
+    return sections.slice(0, 4)
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,25 +272,49 @@ export default function SummarizePage() {
         setProcessingStage(1)
         setStatusMessage("Uploading file...")
         
-        // Upload file to backend using new Python script approach
-        const formData = new FormData()
-        formData.append('file', uploadedFile)
-        formData.append('message', 'Please analyze this research paper and provide a comprehensive summary')
-        formData.append('context', '')
-        formData.append('history', '[]')
+        // First upload file to storage system
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', uploadedFile)
+        uploadFormData.append('message', 'Please analyze this research paper and provide a comprehensive summary')
+        uploadFormData.append('sourceUrl', '')
 
-        const response = await fetch('/api/chat', {
+        const uploadResponse = await fetch('/api/files/upload', {
           method: 'POST',
-          body: formData
+          body: uploadFormData
         })
 
-        if (!response.ok) {
-          throw new Error('Upload failed')
+        if (!uploadResponse.ok) {
+          throw new Error('File upload failed')
         }
 
-        const data = await response.json()
-        console.log('File uploaded successfully:', data)
-        setStatusMessage("File uploaded successfully! ✅")
+        const uploadData = await uploadResponse.json()
+        console.log('File uploaded to storage:', uploadData)
+        setStatusMessage("File uploaded to storage successfully! ✅")
+
+        // Now analyze the uploaded file using chat API
+        const analysisFormData = new FormData()
+        analysisFormData.append('file', uploadedFile)
+        analysisFormData.append('message', 'Please analyze this research paper and provide a comprehensive summary with the following sections: Methodology, Results, Dataset, and Limitations. For each section, provide a title, content, and AI confidence score (0-100).')
+        analysisFormData.append('context', '')
+        analysisFormData.append('history', '[]')
+
+        const analysisResponse = await fetch('/api/chat', {
+          method: 'POST',
+          body: analysisFormData
+        })
+
+        if (!analysisResponse.ok) {
+          throw new Error('Analysis failed')
+        }
+
+        const analysisData = await analysisResponse.json()
+        console.log('File analysis completed:', analysisData)
+        setStatusMessage("File analysis completed! ✅")
+        
+        // Store the analysis response for later use
+        if (analysisData.message) {
+          (window as any).lastAnalysisResponse = analysisData.message
+        }
       } else if (paperUrl.trim()) {
         setProcessingStage(1)
         setStatusMessage("Downloading PDF from URL...")
@@ -259,23 +330,49 @@ export default function SummarizePage() {
           // Create file from downloaded content
           const downloadedFile = new File([content], filename, { type: 'application/pdf' })
           
-          const formData = new FormData()
-          formData.append('file', downloadedFile)
-          formData.append('message', `Please analyze this research paper from URL: ${paperUrl}`)
-          formData.append('sourceUrl', paperUrl)
+          // First upload file to storage system
+          const uploadFormData = new FormData()
+          uploadFormData.append('file', downloadedFile)
+          uploadFormData.append('message', `Please analyze this research paper from URL: ${paperUrl}`)
+          uploadFormData.append('sourceUrl', paperUrl)
 
-          const response = await fetch('/api/chat', {
+          const uploadResponse = await fetch('/api/files/upload', {
             method: 'POST',
-            body: formData
+            body: uploadFormData
           })
 
-          if (!response.ok) {
-            throw new Error('URL processing failed')
+          if (!uploadResponse.ok) {
+            throw new Error('File upload failed')
           }
 
-          const data = await response.json()
-          console.log('URL processed successfully:', data)
-          setStatusMessage("URL processed successfully! ✅")
+          const uploadData = await uploadResponse.json()
+          console.log('File uploaded to storage:', uploadData)
+          setStatusMessage("File uploaded to storage successfully! ✅")
+
+          // Now analyze the uploaded file using chat API
+          const analysisFormData = new FormData()
+          analysisFormData.append('file', downloadedFile)
+          analysisFormData.append('message', `Please analyze this research paper from URL: ${paperUrl} and provide a comprehensive summary with the following sections: Methodology, Results, Dataset, and Limitations. For each section, provide a title, content, and AI confidence score (0-100).`)
+          analysisFormData.append('context', '')
+          analysisFormData.append('history', '[]')
+
+          const analysisResponse = await fetch('/api/chat', {
+            method: 'POST',
+            body: analysisFormData
+          })
+
+          if (!analysisResponse.ok) {
+            throw new Error('Analysis failed')
+          }
+
+                  const analysisData = await analysisResponse.json()
+        console.log('URL analysis completed:', analysisData)
+        setStatusMessage("URL analysis completed! ✅")
+        
+        // Store the analysis response for later use
+        if (analysisData.message) {
+          (window as any).lastAnalysisResponse = analysisData.message
+        }
         } catch (error) {
           console.error('Error downloading PDF from URL:', error)
           setIsError(true)
@@ -336,10 +433,10 @@ export default function SummarizePage() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 text-center">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent mb-4">
-              Neural Summarization Engine
+              เครื่องมือสรุปงานวิจัย
             </h2>
             <p className="text-purple-200 text-lg">
-              Transform research papers into quantum insights with AI consciousness
+              แปลงงานวิจัยเป็นข้อมูลเชิงลึกด้วยปัญญาประดิษฐ์
             </p>
           </div>
 
@@ -348,20 +445,20 @@ export default function SummarizePage() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Zap className="mr-2 h-5 w-5 text-purple-400" />
-                  Upload Research Paper
+                  อัปโหลดงานวิจัย
                 </CardTitle>
                 <CardDescription className="text-purple-200">
-                  Feed the neural network with your research document
+                  อัปโหลดเอกสารงานวิจัยของคุณเพื่อวิเคราะห์
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="upload" className="space-y-6">
                   <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm border-white/20">
                     <TabsTrigger value="upload" className="data-[state=active]:bg-purple-500/50 text-white">
-                      Neural Upload
+                      อัปโหลดไฟล์
                     </TabsTrigger>
                     <TabsTrigger value="link" className="data-[state=active]:bg-purple-500/50 text-white">
-                      Quantum Link
+                      ลิงก์งานวิจัย
                     </TabsTrigger>
                   </TabsList>
 
@@ -376,10 +473,10 @@ export default function SummarizePage() {
                           <Upload className="h-10 w-10 text-white" />
                         </div>
                         <div className="space-y-3">
-                          <div className="text-xl font-medium text-white hover:text-purple-200 transition-colors">
-                            Drop your research into the neural void
-                          </div>
-                          <p className="text-purple-300">Supports PDF files up to 10MB • Neural processing ready</p>
+                                                  <div className="text-xl font-medium text-white hover:text-purple-200 transition-colors">
+                          ลากไฟล์งานวิจัยมาที่นี่
+                        </div>
+                        <p className="text-purple-300">รองรับไฟล์ PDF ขนาดไม่เกิน 10MB • พร้อมประมวลผล</p>
                           <Input
                             id="file-upload"
                             type="file"
@@ -404,7 +501,7 @@ export default function SummarizePage() {
                   <TabsContent value="link" className="space-y-4">
                     <div className="space-y-3">
                       <Label htmlFor="paper-url" className="text-white text-lg">
-                        Quantum Research URL
+                        ลิงก์งานวิจัย
                       </Label>
                       <div className="relative">
                         <LinkIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-400 h-5 w-5" />
@@ -447,7 +544,7 @@ export default function SummarizePage() {
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Atom className="h-5 w-5 group-hover:animate-spin transition-transform" />
-                          <span>Begin Neural Analysis</span>
+                          <span>เริ่มวิเคราะห์</span>
                           <Sparkles className="h-4 w-4 group-hover:animate-pulse" />
                         </div>
                       )}
@@ -467,10 +564,10 @@ export default function SummarizePage() {
                         <CheckCircle className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-white text-xl">Neural Analysis Complete</CardTitle>
-                        <CardDescription className="text-green-200">
-                          AI consciousness has processed your research with quantum precision
-                        </CardDescription>
+                                              <CardTitle className="text-white text-xl">การวิเคราะห์เสร็จสิ้น</CardTitle>
+                      <CardDescription className="text-green-200">
+                        ปัญญาประดิษฐ์ได้ประมวลผลงานวิจัยของคุณเรียบร้อยแล้ว
+                      </CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -484,14 +581,14 @@ export default function SummarizePage() {
                           </TabsTrigger>
                         </TabsList>
                       </Tabs>
-                      <Button
-                        variant="outline"
-                        onClick={downloadSummary}
-                        className="border-green-400/50 text-green-200 hover:bg-green-500/20 bg-transparent"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Export Neural Data
-                      </Button>
+                                              <Button
+                          variant="outline"
+                          onClick={downloadSummary}
+                          className="border-green-400/50 text-green-200 hover:bg-green-500/20 bg-transparent"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          ดาวน์โหลดผลการวิเคราะห์
+                        </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -536,7 +633,7 @@ export default function SummarizePage() {
                             className="text-purple-300 hover:text-white hover:bg-purple-500/20 transition-all duration-300"
                           >
                             <Copy className="h-4 w-4 mr-2" />
-                            Copy Neural Data
+                            คัดลอกข้อมูล
                           </Button>
                         </div>
                       </CardContent>
@@ -556,7 +653,7 @@ export default function SummarizePage() {
                   }}
                   className="border-purple-400/50 text-purple-200 hover:bg-purple-500/20 backdrop-blur-sm px-8"
                 >
-                  Analyze Another Paper
+                  วิเคราะห์งานวิจัยอื่น
                 </Button>
                 <Button
                   asChild
@@ -564,7 +661,7 @@ export default function SummarizePage() {
                 >
                   <Link href="/match">
                     <Search className="mr-2 h-4 w-4" />
-                    Find Quantum Connections
+                    ค้นหาความเชื่อมโยง
                   </Link>
                 </Button>
               </div>

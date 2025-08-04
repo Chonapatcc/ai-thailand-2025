@@ -28,13 +28,13 @@ export class ValidationUtils {
     }
 
     // Check file type
-    const allowedTypes = ['.pdf']
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.txt', '.md', '.json', '.xml', '.html', '.css', '.js', '.ts', '.mp3', '.wav', '.ogg', '.m4a', '.flac']
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
     
     if (!allowedTypes.includes(fileExtension)) {
       return {
         isValid: false,
-        error: 'Only PDF files are supported',
+        error: 'File type not supported. Supported types: PDF, Images (JPG, PNG, GIF, etc.), Audio (MP3, WAV, etc.), Text files',
         field: 'file'
       }
     }

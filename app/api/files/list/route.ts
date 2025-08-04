@@ -92,7 +92,11 @@ export async function GET(request: NextRequest) {
         uploadDate: file.uploadDate,
         summary: file.summary,
         tags: file.tags,
-        sourceUrl: file.sourceUrl
+        sourceUrl: file.sourceUrl,
+        fileType: file.fileType,
+        frontendPath: file.frontendPath,
+        backendPath: file.backendPath,
+        content: file.content
       })),
       pagination: {
         page: pageNum,

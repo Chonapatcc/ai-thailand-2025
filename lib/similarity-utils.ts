@@ -1,4 +1,4 @@
-import { OPENROUTER_CONFIG, getAuthHeader } from '@/lib/config'
+import { getAuthHeader } from '@/lib/config'
 
 export interface SimilarityScore {
   score: number
@@ -37,49 +37,15 @@ export async function calculateSimilarityScore(
       { role: "user", content: userPrompt }
     ]
 
-    const response = await fetch(OPENROUTER_CONFIG.URL, {
-      method: 'POST',
-      headers: {
-        ...OPENROUTER_CONFIG.HEADERS,
-        ...getAuthHeader()
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_CONFIG.MODEL,
-        messages,
-        max_tokens: 500,
-        temperature: 0.3,
-        stream: false
-      })
-    })
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn('Rate limit exceeded, using fallback similarity calculation')
-        // Use fallback calculation based on keyword matching
-        return calculateFallbackSimilarity(paperContent, searchQuery)
-      }
-      throw new Error(`AI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const aiResponse = data.choices[0].message.content
-
-    // Parse the AI response to extract score, explanation, and summary
-    const parsed = parseSimilarityResponse(aiResponse)
-    
-    return {
-      score: parsed.score,
-      explanation: parsed.explanation,
-      summary: parsed.summary
-    }
-
+    // Use fallback similarity calculation since OpenRouter is removed
+    return calculateFallbackSimilarity(paperContent, searchQuery);
   } catch (error) {
-    console.error('Error calculating similarity score:', error)
+    console.error('Error calculating similarity score:', error);
     return {
       score: 50,
       explanation: 'Unable to calculate similarity score due to processing error',
       summary: 'Paper content analysis unavailable'
-    }
+    };
   }
 }
 
@@ -137,47 +103,15 @@ export async function calculateHistoricalSimilarity(
       { role: "user", content: userPrompt }
     ]
 
-    const response = await fetch(OPENROUTER_CONFIG.URL, {
-      method: 'POST',
-      headers: {
-        ...OPENROUTER_CONFIG.HEADERS,
-        ...getAuthHeader()
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_CONFIG.MODEL,
-        messages,
-        max_tokens: 500,
-        temperature: 0.3,
-        stream: false
-      })
-    })
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn('Rate limit exceeded, using fallback historical similarity calculation')
-        return calculateFallbackHistoricalSimilarity(paperContent, recentQueries)
-      }
-      throw new Error(`AI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const aiResponse = data.choices[0].message.content
-
-    const parsed = parseSimilarityResponse(aiResponse)
-    
-    return {
-      score: parsed.score,
-      explanation: parsed.explanation,
-      summary: parsed.summary
-    }
-
+    // Use fallback historical similarity calculation since OpenRouter is removed
+    return calculateFallbackHistoricalSimilarity(paperContent, recentQueries);
   } catch (error) {
-    console.error('Error calculating historical similarity:', error)
+    console.error('Error calculating historical similarity:', error);
     return {
       score: 50,
       explanation: 'Unable to calculate relevance score due to processing error',
       summary: 'Paper content analysis unavailable'
-    }
+    };
   }
 }
 

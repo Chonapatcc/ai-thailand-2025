@@ -66,21 +66,22 @@ def main():
             print("Error: No valid audio file found after processing")
             sys.exit(1)
         
-        # Create comprehensive audio analysis prompt
+        # Create comprehensive Thai audio analysis prompt
         audio_prompt = f"""
-Please analyze this audio content and answer the following question: {question}
+กรุณาวิเคราะห์เนื้อหาออดิโอนี้และตอบคำถามต่อไปนี้: {question}
 
-Context: {context if context else 'No additional context provided'}
+บริบทเพิ่มเติม: {context if context else 'ไม่มีบริบทเพิ่มเติม'}
 
-Please provide a detailed analysis of the audio content and answer the question comprehensively.
-Consider the following aspects:
-1. Speech content and transcription if applicable
-2. Audio quality and characteristics
-3. Background sounds or music
-4. Emotional tone and context
-5. Technical audio properties
+โปรดให้การวิเคราะห์รายละเอียดของเนื้อหาในออดิโอและตอบคำถามอย่างครบถ้วน
+พิจารณาแง่มุมต่างๆ ดังนี้:
+1. เนื้อหาการพูดและการแปล (หากมี)
+2. คุณภาพเสียงและลักษณะเฉพาะ
+3. เสียงพื้นหลังหรือเพลง
+4. น้ำเสียงและอารมณ์
+5. คุณสมบัติทางเทคนิคของเสียง
 
-Question: {question}
+คำถาม: {question}
+โปรดตอบคำถามทุกครั้งด้วยภาษาไทยที่ชัดเจนและเข้าใจง่าย
 """
         
         # Call the AIFT AudioQA function with audio file path
