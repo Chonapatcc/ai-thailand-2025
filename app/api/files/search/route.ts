@@ -38,46 +38,41 @@ export async function GET(request: NextRequest) {
     let searchType = 'text'
     let files: any[] = []
 
-    // Try vector database search first
+    // Try text-based search first (more reliable)
     try {
-      const vectorResults = await vectorDB.searchDocuments(sanitizedQuery, 10)
-      
-      if (vectorResults.length > 0) {
-        searchType = 'vector'
-        files = vectorResults.map(result => ({
-          id: result.id,
-          filename: result.metadata.filename,
-          originalName: result.metadata.filename,
-          size: 0, // Size not available in vector results
-          uploadDate: result.metadata.uploadDate,
-          content: result.content,
-          tags: result.metadata.tags || [],
-          summary: result.metadata.summary,
-          sourceUrl: result.metadata.sourceUrl,
-          similarityScore: result.score // This is now a percentage (0-100)
-        }))
-      }
-    } catch (vectorError) {
-      ApiErrorHandler.logError(vectorError, 'Vector search failed, falling back to text search')
-      // Continue to text search fallback
+      const textResults = await fileStorage.searchFiles(sanitizedQuery)
+      files = textResults.map(file => ({
+        id: file.id,
+        filename: file.originalName,
+        size: file.size,
+        uploadDate: file.uploadDate,
+        summary: file.summary,
+        tags: file.tags,
+        content: file.content.substring(0, 500), // Include first 500 chars for preview
+        sourceUrl: file.sourceUrl
+      }))
+    } catch (textSearchError) {
+      console.error('Text search failed:', textSearchError)
+      // Return empty results instead of error
+      files = []
     }
 
-    // Fallback to text-based search if vector search failed or returned no results
-    if (files.length === 0) {
+    // Try vector database search as enhancement if text search found results
+    if (files.length > 0) {
       try {
-        const textResults = await fileStorage.searchFiles(sanitizedQuery)
-        files = textResults.map(file => ({
-          id: file.id,
-          filename: file.originalName,
-          size: file.size,
-          uploadDate: file.uploadDate,
-          summary: file.summary,
-          tags: file.tags,
-          content: file.content.substring(0, 500) // Include first 500 chars for preview
-        }))
-      } catch (textSearchError) {
-        ApiErrorHandler.logError(textSearchError, 'Text search failed')
-        return ApiErrorHandler.handleDatabaseError('search files', textSearchError)
+        const vectorResults = await vectorDB.searchDocuments(sanitizedQuery, 10)
+        if (vectorResults.length > 0) {
+          searchType = 'vector'
+          // Enhance existing results with vector scores
+          const vectorMap = new Map(vectorResults.map(result => [result.id, result.score]))
+          files = files.map(file => ({
+            ...file,
+            similarityScore: vectorMap.get(file.id) || 75 // Default score if not in vector results
+          }))
+        }
+      } catch (vectorError) {
+        console.error('Vector search failed:', vectorError)
+        // Continue with text search results
       }
     }
 
@@ -94,6 +89,14 @@ export async function GET(request: NextRequest) {
     return addRateLimitHeaders(response, rateLimitResult)
 
   } catch (error) {
-    return ApiErrorHandler.handleUnknownError(error, 'File search operation')
+    console.error('Search API error:', error)
+    // Return empty results instead of error
+    return NextResponse.json({
+      success: true,
+      files: [],
+      searchType: 'error',
+      query: searchParams.get('q') || '',
+      totalResults: 0
+    })
   }
 } 

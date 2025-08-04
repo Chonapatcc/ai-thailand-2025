@@ -11,6 +11,13 @@ import Link from "next/link"
 import { Navigation } from "@/components/ui/navigation"
 import { calculateSimilarityScore, SimilarityScore } from "@/lib/similarity-utils"
 
+interface MatchReason {
+  type: 'title' | 'topic' | 'summary' | 'abstract' | 'author' | 'content'
+  field: string
+  matchedText: string
+  explanation: string
+}
+
 interface MatchedPaper {
   id: number
   title: string
@@ -23,6 +30,7 @@ interface MatchedPaper {
   link: string
   abstract: string
   similarityScore?: SimilarityScore
+  matchReasons: MatchReason[]
 }
 
 export default function MatchPage() {
@@ -32,7 +40,7 @@ export default function MatchPage() {
   const [expandedPaper, setExpandedPaper] = useState<number | null>(null)
 
   // Mock data with more papers
-  const mockPapers: MatchedPaper[] = [
+  const mockPapers: Omit<MatchedPaper, 'matchReasons'>[] = [
     {
       id: 1,
       title: "Attention Is All You Need",
@@ -200,7 +208,14 @@ export default function MatchPage() {
                 relevanceScore: similarityScore.score, // This is now a percentage
                 link: file.sourceUrl || '#',
                 abstract: file.content?.substring(0, 200) + '...' || 'No content available',
-                similarityScore
+                similarityScore,
+                matchReasons: calculateMatchReasons({
+                  title: file.filename,
+                  topics: file.tags || [],
+                  summary: file.summary || '',
+                  abstract: file.content || '',
+                  authors: ['Uploaded Paper']
+                }, searchQuery)
               }
             } catch (error) {
               console.error('Error calculating similarity for file:', file.filename, error)
@@ -214,7 +229,14 @@ export default function MatchPage() {
                 summary: file.summary || 'No summary available',
                 relevanceScore: 50,
                 link: file.sourceUrl || '#',
-                abstract: file.content?.substring(0, 200) + '...' || 'No content available'
+                abstract: file.content?.substring(0, 200) + '...' || 'No content available',
+                matchReasons: calculateMatchReasons({
+                  title: file.filename,
+                  topics: file.tags || [],
+                  summary: file.summary || '',
+                  abstract: file.content || '',
+                  authors: ['Uploaded Paper']
+                }, searchQuery)
               }
             }
           })
@@ -225,13 +247,49 @@ export default function MatchPage() {
 
       // If no uploaded files found, show mock results
       if (results.length === 0) {
-        results = mockPapers.filter(paper => 
-          paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          paper.topics.some(topic => topic.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          paper.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          paper.abstract.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          paper.authors.some(author => author.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
+        const query = searchQuery.toLowerCase()
+        const keywords = query.split(' ').filter(word => word.length > 2)
+        
+        const filteredPapers = mockPapers.filter(paper => {
+          // Check exact matches first
+          const exactMatch = 
+            paper.title.toLowerCase().includes(query) ||
+            paper.topics.some(topic => topic.toLowerCase().includes(query)) ||
+            paper.summary.toLowerCase().includes(query) ||
+            paper.abstract.toLowerCase().includes(query) ||
+            paper.authors.some(author => author.toLowerCase().includes(query))
+          
+          if (exactMatch) return true
+          
+          // Check keyword matches
+          const keywordMatch = keywords.some(keyword =>
+            paper.title.toLowerCase().includes(keyword) ||
+            paper.topics.some(topic => topic.toLowerCase().includes(keyword)) ||
+            paper.summary.toLowerCase().includes(keyword) ||
+            paper.abstract.toLowerCase().includes(keyword) ||
+            paper.authors.some(author => author.toLowerCase().includes(keyword))
+          )
+          
+          return keywordMatch
+        })
+        
+        // Add match reasons and calculate relevance scores
+        results = filteredPapers.map(paper => {
+          const matchReasons = calculateMatchReasons(paper, searchQuery)
+          const relevanceScore = Math.min(95, 70 + (matchReasons.length * 5)) // Base score + bonus for multiple matches
+          
+          return {
+            ...paper,
+            matchReasons,
+            relevanceScore
+          }
+        })
+      } else {
+        // Add match reasons to uploaded files
+        results = results.map(paper => ({
+          ...paper,
+          matchReasons: calculateMatchReasons(paper, searchQuery)
+        }))
       }
       
       // Sort results by relevance score (highest first)
@@ -249,6 +307,126 @@ export default function MatchPage() {
 
   const toggleExpanded = (paperId: number) => {
     setExpandedPaper(expandedPaper === paperId ? null : paperId)
+  }
+
+  const calculateMatchReasons = (paper: any, searchQuery: string): MatchReason[] => {
+    const reasons: MatchReason[] = []
+    const query = searchQuery.toLowerCase()
+    const keywords = query.split(' ').filter(word => word.length > 2) // Split into keywords
+    
+    // Check title matches
+    if (paper.title.toLowerCase().includes(query)) {
+      const matchedText = paper.title
+      reasons.push({
+        type: 'title',
+        field: 'Title',
+        matchedText,
+        explanation: `Title contains "${searchQuery}"`
+      })
+    } else {
+      // Check for partial keyword matches in title
+      const matchingKeywords = keywords.filter(keyword => 
+        paper.title.toLowerCase().includes(keyword)
+      )
+      if (matchingKeywords.length > 0) {
+        reasons.push({
+          type: 'title',
+          field: 'Title',
+          matchedText: paper.title,
+          explanation: `Title contains keywords: ${matchingKeywords.join(', ')}`
+        })
+      }
+    }
+    
+    // Check topic matches
+    const matchingTopics = paper.topics.filter((topic: string) => 
+      topic.toLowerCase().includes(query) || 
+      keywords.some(keyword => topic.toLowerCase().includes(keyword))
+    )
+    if (matchingTopics.length > 0) {
+      reasons.push({
+        type: 'topic',
+        field: 'Topics',
+        matchedText: matchingTopics.join(', '),
+        explanation: `Topics match: ${matchingTopics.join(', ')}`
+      })
+    }
+    
+    // Check summary matches
+    if (paper.summary.toLowerCase().includes(query)) {
+      const startIndex = paper.summary.toLowerCase().indexOf(query)
+      const endIndex = Math.min(startIndex + query.length + 50, paper.summary.length)
+      const matchedText = paper.summary.substring(startIndex, endIndex) + '...'
+      reasons.push({
+        type: 'summary',
+        field: 'Summary',
+        matchedText,
+        explanation: `Summary contains "${searchQuery}"`
+      })
+    } else {
+      // Check for partial keyword matches in summary
+      const matchingKeywords = keywords.filter(keyword => 
+        paper.summary.toLowerCase().includes(keyword)
+      )
+      if (matchingKeywords.length > 0) {
+        const firstMatch = matchingKeywords[0]
+        const startIndex = paper.summary.toLowerCase().indexOf(firstMatch)
+        const endIndex = Math.min(startIndex + firstMatch.length + 50, paper.summary.length)
+        const matchedText = paper.summary.substring(startIndex, endIndex) + '...'
+        reasons.push({
+          type: 'summary',
+          field: 'Summary',
+          matchedText,
+          explanation: `Summary contains keywords: ${matchingKeywords.join(', ')}`
+        })
+      }
+    }
+    
+    // Check abstract matches
+    if (paper.abstract.toLowerCase().includes(query)) {
+      const startIndex = paper.abstract.toLowerCase().indexOf(query)
+      const endIndex = Math.min(startIndex + query.length + 50, paper.abstract.length)
+      const matchedText = paper.abstract.substring(startIndex, endIndex) + '...'
+      reasons.push({
+        type: 'abstract',
+        field: 'Abstract',
+        matchedText,
+        explanation: `Abstract contains "${searchQuery}"`
+      })
+    } else {
+      // Check for partial keyword matches in abstract
+      const matchingKeywords = keywords.filter(keyword => 
+        paper.abstract.toLowerCase().includes(keyword)
+      )
+      if (matchingKeywords.length > 0) {
+        const firstMatch = matchingKeywords[0]
+        const startIndex = paper.abstract.toLowerCase().indexOf(firstMatch)
+        const endIndex = Math.min(startIndex + firstMatch.length + 50, paper.abstract.length)
+        const matchedText = paper.abstract.substring(startIndex, endIndex) + '...'
+        reasons.push({
+          type: 'abstract',
+          field: 'Abstract',
+          matchedText,
+          explanation: `Abstract contains keywords: ${matchingKeywords.join(', ')}`
+        })
+      }
+    }
+    
+    // Check author matches
+    const matchingAuthors = paper.authors.filter((author: string) => 
+      author.toLowerCase().includes(query) ||
+      keywords.some(keyword => author.toLowerCase().includes(keyword))
+    )
+    if (matchingAuthors.length > 0) {
+      reasons.push({
+        type: 'author',
+        field: 'Authors',
+        matchedText: matchingAuthors.join(', '),
+        explanation: `Author matches: ${matchingAuthors.join(', ')}`
+      })
+    }
+    
+    return reasons
   }
 
   const getRelevanceColor = (score: number) => {
@@ -285,6 +463,16 @@ export default function MatchPage() {
                   rows={4}
                   className="resize-none"
                 />
+                <div className="text-xs text-purple-300">
+                  <p className="mb-1">ตัวอย่างการค้นหา:</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="bg-purple-500/20 px-2 py-1 rounded text-xs">transformer</span>
+                    <span className="bg-purple-500/20 px-2 py-1 rounded text-xs">computer vision</span>
+                    <span className="bg-purple-500/20 px-2 py-1 rounded text-xs">deep learning</span>
+                    <span className="bg-purple-500/20 px-2 py-1 rounded text-xs">neural networks</span>
+                    <span className="bg-purple-500/20 px-2 py-1 rounded text-xs">attention mechanism</span>
+                  </div>
+                </div>
               </div>
               <div className="flex justify-center">
                 <Button
@@ -333,6 +521,13 @@ export default function MatchPage() {
                             {paper.similarityScore && (
                               <div className="bg-purple-500/20 px-2 py-1 rounded-full">
                                 <span className="text-xs text-purple-300 font-medium">AI: {paper.similarityScore.explanation}</span>
+                              </div>
+                            )}
+                            {paper.matchReasons && paper.matchReasons.length > 0 && (
+                              <div className="bg-blue-500/20 px-2 py-1 rounded-full">
+                                <span className="text-xs text-blue-300 font-medium">
+                                  {paper.matchReasons.length} match{paper.matchReasons.length > 1 ? 'es' : ''}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -386,9 +581,35 @@ export default function MatchPage() {
                       </div>
 
                       {expandedPaper === paper.id && (
-                        <div className="pt-4 border-t">
-                          <h4 className="font-medium text-white mb-2">บทคัดย่อ</h4>
-                          <p className="text-purple-200 text-sm leading-relaxed">{paper.abstract}</p>
+                        <div className="pt-4 border-t space-y-4">
+                          {/* Match Reasons */}
+                          {paper.matchReasons && paper.matchReasons.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-white mb-2">เหตุผลที่ตรงกัน</h4>
+                              <div className="space-y-2">
+                                {paper.matchReasons.map((reason, index) => (
+                                  <div key={index} className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-sm font-medium text-blue-300">{reason.field}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {reason.type}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-blue-200 mb-1">{reason.explanation}</p>
+                                    <p className="text-xs text-blue-300 bg-blue-500/20 p-2 rounded">
+                                      "{reason.matchedText}"
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Abstract */}
+                          <div>
+                            <h4 className="font-medium text-white mb-2">บทคัดย่อ</h4>
+                            <p className="text-purple-200 text-sm leading-relaxed">{paper.abstract}</p>
+                          </div>
                         </div>
                       )}
                     </CardContent>

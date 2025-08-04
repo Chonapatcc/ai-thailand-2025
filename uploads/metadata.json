@@ -604,5 +604,137 @@
         "confidence": 0
       }
     }
+  },
+  {
+    "id": "mdwmg9lrf9jwwxtp1q",
+    "filename": "mdwmg9lrf9jwwxtp1q_Causal_Reasoning_in_Pieces_Modular_In-Context_Learning_for_Causal_Discovery.pdf",
+    "originalName": "Causal Reasoning in Pieces Modular In-Context Learning for Causal Discovery.pdf",
+    "size": 1076903,
+    "uploadDate": "2025-08-04T04:40:08.611Z",
+    "content": "Kacper Kadziolka; Saber Salehkaleybar arXiv GenPDF \\tex2pdf:\\ https://doi.org/10.48550/arXiv.2507.23488 http://creativecommons.org/licenses/by/4.0/ This is pdfTeX, Version 3.141592653-2.6-1.40.25 \\TeX Live 2023\\ pikepdf 8.15.1 Causal Reasoning in Pieces: Modular In-Context Learning for Causal Discovery https://arxiv.org/abs/2507.23488v1 tex2pdf: Doc-Start table.caption.7 Doc-Start lstnumber.5.29 lstnumber.5.3 table.caption.7 cite.brown2020languagemodelsfewshotlearners cite.brown2020languagemodelsfewshotlearners cite.wei2023chainofthoughtpromptingelicitsreasoning cite.wei2023chainofthoughtpromptingelicitsreasoning cite.jin2024largelanguagemodelsinfer cite.jin2024largelanguagemodelsinfer cite.ze�\\215evi�\\2072023causalparrotslargelanguage cite.ze�\\215evi�\\2072023causalparrotslargelanguage Hfootnote.1 cite.jin2024largelanguagemodelsinfer cite.jin2024largelanguagemodelsinfer https://huggingface.co/datasets/causal-nlp/corr2cause https://arxiv.org/abs/2507.23488v1 fitz-L0 T��\u001dW�M��<N�t� �vw�{��D��me���c\u000f1ocU\u001b<���4�������G�\b6\u0005�`aIVDR�\u000eqɆ<DC��\u001d����&ڊ������S�6o�! \u000f�h\\��˦�\u0015D�h%�|@GS�\u001cb#�_Y\u001c�y� ��D!y��8 ����Y8\\�QD���D%Q�e�Td\u0011�y\\\u001c�$�q����������ڑo4�ܝڽ>�v�s��n\u001a�޻9wt��BA\u0014�\u001fot{�����M3F66��\u0017�QZ 6�\u0003b��h��@�7v�\u0011\u000eE���\u001c1\u0019,_�k\u0016<�Ӂ��U���o�U2M�U�䠷���K\u0003';�zx�\u0001��v�$� W��2�$2ܚdF2]\u0015l~\u001f\u000ff:؃��`��d��.�P�\u0007'��\u001e��Y��t�3�nG\u0006�Ʃy�\u0011\u0004 ��D\u0017�E�2\b\u0007 �%1�<���c\u0000g�\u001a�d�ד���Ӱ��8�aZ��?ۼ\bܤq:��r�m�C�_\u001a�Q8���N-��t��k� � <�#\u0001\u0007*������9�5\u0016\u0014��Y\u0005�<_��e\u001bf2���\u0002�`�JC�Eqq�A�\u0013��X]\u0015Q�.l������ \u001f� ߼j\u0002��Zk�\u0001�\u000eG F����\\Y��1s4\u000e}\u00189T�Koڛ����@v�J�¢*A�����]8��6�5��\u001d�\u0014��a,\u001d�+k.�a �rq�� ��t��S��U� �\u0004�\u0013�\u0011\u0015�����*AG�\\�5_-dֳ����g�ZF�4dY�@&W\u001a>SF��� ���\\�Q�-��-���2j�\u0006n�K�k5�\u0016�U�S�\"�.���<bs� �Sk��J\u0016� \u0005��4��e\u0003�;�-�5���Yp����K��z��j~��\u00133� G��xQ� ��s\u001a�]��vI�� n�M��\u001bO=w\u0015�z^ZO�=⛣�P�p�\u0005\u001a���\u0014\\i\\ zQF�p� ��d��̊sv̊es�+�4��34�2C\u0010�VeZx�$��ri���Z������*p��X딙�&�$\u0017:�v���c\u0015��\u0011b\u0004�=ԣ\u0013�p�w��\u001a���\u0015 F�����z�>���2�c?����5k�@�������9��NHA\u0017=i01�]�\u001ceF��\u0019�Cɒ�@�RF�p��vю�rp����܋�\u0010?",
+    "tags": [
+      "causal",
+      "reasoning",
+      "pieces",
+      "modular",
+      "context",
+      "learning",
+      "for",
+      "discovery",
+      "ai",
+      "nlp",
+      "model",
+      "dataset"
+    ],
+    "summary": {
+      "summary": "Summary generation failed. Please try again.",
+      "sections": {
+        "methodology": "",
+        "results": "",
+        "findings": "",
+        "limitations": ""
+      },
+      "keyPoints": [],
+      "tags": [],
+      "confidence": 0,
+      "aiScores": {
+        "methodology": 0,
+        "results": 0,
+        "findings": 0,
+        "limitations": 0,
+        "overall": 0
+      },
+      "pageAnalysis": {
+        "totalPages": 0,
+        "contentDensity": 0,
+        "textQuality": 0,
+        "structureScore": 0
+      },
+      "chatAnalysis": "Analysis failed. Please try again."
+    },
+    "fileType": "pdf",
+    "frontendPath": "frontend\\pdf\\mdwmg9lrf9jwwxtp1q_Causal_Reasoning_in_Pieces_Modular_In-Context_Learning_for_Causal_Discovery.pdf",
+    "backendPath": "backend\\pdf\\mdwmg9lrf9jwwxtp1q_Causal_Reasoning_in_Pieces_Modular_In-Context_Learning_for_Causal_Discovery.pdf",
+    "metadata": {
+      "title": "Untitled Document",
+      "pageCount": 1,
+      "keywords": [],
+      "analysis": {
+        "summary": "Summary generation failed. Please try again.",
+        "sections": {
+          "methodology": "",
+          "results": "",
+          "findings": "",
+          "limitations": ""
+        },
+        "keyPoints": [],
+        "confidence": 0
+      }
+    }
+  },
+  {
+    "id": "mdwmhdiltg0rtk5joz",
+    "filename": "mdwmhdiltg0rtk5joz_HOW_GOOD_ARE_LLMs_AT_TEXT-BASED_VIDEO_GAMES.pdf",
+    "originalName": "HOW GOOD ARE LLMs AT TEXT-BASED VIDEO GAMES.pdf",
+    "size": 1589117,
+    "uploadDate": "2025-08-04T04:41:00.337Z",
+    "content": "Long Phan; Mantas Mazeika; Andy Zou; Dan Hendrycks arXiv GenPDF \\tex2pdf:\\ https://doi.org/10.48550/arXiv.2507.23701 http://creativecommons.org/licenses/by/4.0/ This is pdfTeX, Version 3.141592653-2.6-1.40.25 \\TeX Live 2023\\ pikepdf 8.15.1 TextQuests: How Good are LLMs at Text-Based Video Games? https://arxiv.org/abs/2507.23701v1 tex2pdf: Doc-Start table.caption.5 Doc-Start figure.caption.23 figure.caption.25 subsection.3.2 subsection.4.1 table.caption.5 https://textquests.ai cite.mmlu cite.mmlu cite.math cite.gpqa cite.gpqa cite.hle cite.hle cite.browsecomp cite.browsecomp cite.yao2024taubenchbenchmarktoolagentuserinteraction cite.yao2024taubenchbenchmarktoolagentuserinteraction cite.mialon2023gaiabenchmarkgeneralai cite.mialon2023gaiabenchmarkgeneralai cite.jimenez2024swebench cite.jimenez2024swebench cite.starace2025paperbenchevaluatingaisability cite.starace2025paperbenchevaluatingaisability cite.chan2025mlebenchevaluatingmachinelearning cite.chan2025mlebenchevaluatingmachinelearning cite.sirdeshmukh2025multichallengerealisticmultiturnconversation cite.sirdeshmukh2025multichallengerealisticmultiturnconversation cite.he2024multiifbenchmarkingllmsmultiturn cite.he2024multiifbenchmarkingllmsmultiturn cite.AnthropicExtendedThinking2025 cite.AnthropicExtendedThinking2025 cite.gemini2_5 cite.gemini2_5 cite.Smetale_1983_Zork cite.Smetale_1983_Zork https://arxiv.org/abs/2507.23701v1 fitz-L0 q�`����.L<���\"A�\u0006ihG~��\u0005���� gn��v�\u00176\u001cLC�7���l�[� �����G�de��w�l��a��=����`��y\u0010��h�\b�D���wA�q�lv~�����4S7�Fy�̎�Y� z;�;!5",
+    "tags": [
+      "how",
+      "good",
+      "are",
+      "llms",
+      "text",
+      "based",
+      "video",
+      "games",
+      "ai",
+      "paper"
+    ],
+    "summary": {
+      "summary": "Summary not available",
+      "sections": {
+        "methodology": "",
+        "results": "",
+        "findings": "",
+        "limitations": ""
+      },
+      "keyPoints": [],
+      "tags": [],
+      "confidence": 75,
+      "aiScores": {
+        "methodology": 0,
+        "results": 0,
+        "findings": 0,
+        "limitations": 0,
+        "overall": 75
+      },
+      "pageAnalysis": {
+        "totalPages": 1,
+        "contentDensity": 19.5,
+        "textQuality": 80,
+        "structureScore": 50
+      },
+      "chatAnalysis": "🔴 AI Confidence: undefined%"
+    },
+    "fileType": "pdf",
+    "frontendPath": "frontend\\pdf\\mdwmhdiltg0rtk5joz_HOW_GOOD_ARE_LLMs_AT_TEXT-BASED_VIDEO_GAMES.pdf",
+    "backendPath": "backend\\pdf\\mdwmhdiltg0rtk5joz_HOW_GOOD_ARE_LLMs_AT_TEXT-BASED_VIDEO_GAMES.pdf",
+    "metadata": {
+      "title": "Untitled Document",
+      "pageCount": 1,
+      "keywords": [],
+      "analysis": {
+        "summary": "Summary not available",
+        "sections": {
+          "methodology": "",
+          "results": "",
+          "findings": "",
+          "limitations": ""
+        },
+        "keyPoints": [],
+        "confidence": 75
+      }
+    }
   }
 ]

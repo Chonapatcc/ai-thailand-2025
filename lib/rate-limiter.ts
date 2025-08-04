@@ -98,6 +98,12 @@ export const rateLimiters = {
     maxRequests: 10
   }),
   
+  // Search rate limiting
+  search: new RateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 50
+  }),
+  
   // AI chat rate limiting
   chat: new RateLimiter({
     windowMs: 60 * 1000, // 1 minute
